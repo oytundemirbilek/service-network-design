@@ -7,5 +7,10 @@
     "dev.containers.executeInWSL": true,
     "notebook.defaultFormatter": "ms-python.black-formatter",
     "notebook.formatOnSave.enabled": true,
-    "notebook.formatOnCellExecution": true
+    "notebook.formatOnCellExecution": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

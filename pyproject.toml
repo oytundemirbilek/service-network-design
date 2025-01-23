@@ -27,13 +27,22 @@ classifiers = [
 ]
 
 dependencies = [
-    "numpy<2", # still having problems with older torch versions
     "pandas",
-    "scikit-learn",
-    "torch; platform_system != 'Linux'",
-    # "torchvision", # if needed
+    "gurobipy",
+    "numpy",
+    "networkx",
     "matplotlib",
+    "openpyxl",
+    "xlrd",
+    "plotly",
+    "nbformat",
     "seaborn",
+    "geopy",
+    "pgeocode",
+    "geopandas",
+    "scipy",
+    "scikit-learn",
+    "tqdm",
 ]
 
 [project.urls]

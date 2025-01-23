@@ -2,258 +2,327 @@
 
 from __future__ import annotations
 
+import math
 import os
 
+import geopandas
+import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
-import torch
-from sklearn.model_selection import KFold
-from torch import Tensor
-from torch.utils.data import Dataset
-from torch.utils.data.dataloader import default_collate
+import networkx as nx
 
-ROOT_PATH = os.path.dirname(__file__)
-DATA_PATH = os.path.join(ROOT_PATH, "..", "datasets")
+FILE_PATH = os.path.dirname(__file__)
+DATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "nyc-taxi-trip-duration-extended")
+MAPDATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "neighborhoods-in-new-york")
 
 
-def mock_batch_collate_fn(batch_data: list[Tensor]) -> Tensor:
-    """Definition of how the batched data will be treated."""
-    return default_collate(batch_data)
+class ServiceNetworkDataset:
+    """"""
 
+    def __init__(self, filename: str = "train_extended.csv") -> None:
+        self.df: pd.DataFrame = pd.read_csv(os.path.join(DATA_PATH, filename))
+        # self.nyc_info: pd.DataFrame = pd.read_csv(
+        #     os.path.join(DATA_PATH, "nyc_additional_info.csv")
+        # )
+        self.nyc_map: pd.DataFrame = geopandas.read_file(
+            os.path.join(MAPDATA_PATH, "ZillowNeighborhoods-NY.shp")
+        )
+        self.nyc_map = self.nyc_map.drop_duplicates("Name", keep="first")
+        self.select_counties = [
+            "Kings",
+            "Queens",
+            "Bronx",
+            "Nassau",
+            "Richmond",
+            "Suffolk",
+            "New York",
+            # "Westchester",
+            "Rockland",
+            "Putnam",
+        ]
+        self.demand = None
+        self.distances = None
+        self.nodes = None
+        self.edges = None
+        self.locations = None
+        self.nyc_neighborhoods = self.get_unique_neighborhoods()
 
-class BaseDataset(Dataset):
-    """Base class for common functionalities of all datasets."""
+        self.df = self.clean_data(self.df)
 
-    def __init__(
-        self,
-        path_to_data: str,
-        mode: str = "inference",
-        n_folds: int = 5,
-        current_fold: int = 0,
-        in_memory: bool = False,
-        device: str | torch.device | None = None,
-        random_seed: int = 0,
-    ):
-        """
-        Dataset class to initialize data operations, cross validation and preprocessing.
+    def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """"""
+        rename_mapping = {
+            "Battery Park City": "Battery Park",
+            "Bay Terrace, Staten Island": "Bay Terrace",
+            "Bedford-Stuyvesant": "Bedford Stuyvesant",
+            "Bull's Head": "Bulls Head",
+            "Mariners Harbor": "Mariner's Harbor",
+            "Prospect-Lefferts Gardens": "Prospect Lefferts Gardens",
+            "Richmondtown": "Richmond Town",
+            "Hell's Kitchen": "Clinton",
+            "Sea Gate": "Coney Island",
+            "South Slope": "Greenwood",
+            "Nolita": "Little Italy",
+            "Long Island City": "Hunters Point",
+            "Kips Bay": "Gramercy",
+            "Howland Hook": "Port Ivory",
+            "Edgemere": "Far Rockaway",
+            "Bayswater": "Far Rockaway",
+            "Cypress Hills": "East New York",
+        }
 
-        Parameters
-        ----------
-        path_to_data: string
-            Path where the expected data is stored.
-        mode: string
-            Which split to return, can be 'train', 'validation', 'test', or 'inference'.
-            Use 'inference' to load all data if you have a pretrained model and want to use
-            it in-production.
-        n_folds: integer
-            Number of cross validation folds.
-        current_fold: integer
-            Defines which cross validation fold will be selected for training.
-        in_memory: bool
-            Whether to store all data in memory or not.
-        """
-        super().__init__()
-        if current_fold > n_folds:
-            raise ValueError("selected fold index cannot be more than number of folds.")
-        self.mode = mode
-        self.n_folds = n_folds
-        self.in_memory = in_memory
-        self.path_to_data = path_to_data
-        self.current_fold = current_fold
-        if device is None:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = device
-        self.random_seed = random_seed
-        self.n_samples_total = self.get_number_of_samples()
+        for k, v in rename_mapping.items():
+            df.loc[df["pickup_neighbourhood"] == k, "pickup_neighbourhood"] = v
+            df.loc[df["dropoff_neighbourhood"] == k, "dropoff_neighbourhood"] = v
 
-        # Keep half of the data as 'unseen' to be used in inference.
-        self.seen_data_indices, self.unseen_data_indices = self.get_fold_indices(
-            self.n_samples_total, 2
+        df = self.filter_neighborhoods(df, "pickup_neighbourhood")
+        df = self.filter_neighborhoods(df, "dropoff_neighbourhood")
+
+        def filter_out_same_neighborhood(row):
+            return row["pickup_neighbourhood"] != row["dropoff_neighbourhood"]
+
+        df_filter = df.apply(filter_out_same_neighborhood, axis=1)
+        df = df[df_filter]
+
+        return df
+
+    def calculate_demand(self) -> NDArray[np.floating]:
+        """"""
+        demand = self.df.groupby(
+            ["pickup_neighbourhood", "dropoff_neighbourhood"], as_index=False
+        )["passenger_count"].sum()
+        demand = pd.DataFrame(demand)
+
+        size = len(self.nyc_neighborhoods)
+        demand_mat = np.zeros((size, size))
+        # TODO: maybe there is a more efficient way to derive this matrix.
+        for i, src in enumerate(self.nyc_neighborhoods):
+            for j, dest in enumerate(self.nyc_neighborhoods):
+                pairs = demand[
+                    (demand["pickup_neighbourhood"] == src)
+                    & (demand["dropoff_neighbourhood"] == dest)
+                ]
+                if not pairs.empty:
+                    demand_mat[i, j] = pairs["passenger_count"].item()
+        np.savetxt("demand_matrix.txt", demand_mat)
+        return demand_mat
+
+    def get_demands(self) -> NDArray[np.floating]:
+        """"""
+        if self.demand is None:
+            self.demand = self.calculate_demand()
+
+        return self.demand
+
+    def get_unique_neighborhoods(self) -> NDArray[np.object_]:
+        """"""
+        # info_uniq = set(self.nyc_info["neighbourhood"].unique())
+        map_uniq = set(self.nyc_map["Name"].unique())
+        pickup_uniq = set(self.df["pickup_neighbourhood"].unique())
+        dropoff_uniq = set(self.df["dropoff_neighbourhood"].unique())
+        union_uniq = dropoff_uniq.union(pickup_uniq)
+        all_uniq = list(union_uniq.intersection(map_uniq))
+        all_uniq.sort()
+        return np.array(all_uniq)
+
+    def filter_neighborhoods(self, df: pd.DataFrame, colname: str) -> pd.DataFrame:
+        """"""
+
+        def filters(row):
+            return row in self.nyc_neighborhoods
+
+        df_filter = df[colname].apply(filters)
+        return df[df_filter]
+
+    def calculate_locations(self) -> NDArray[np.floating]:
+        """"""
+        self.nyc_map["center"] = self.nyc_map["geometry"].centroid
+        self.nyc_map["center_longitude"] = self.nyc_map["center"].x
+        self.nyc_map["center_latitude"] = self.nyc_map["center"].y
+
+        def filter_counties(row):
+            return row in self.select_counties
+
+        nyc_map_filter = self.nyc_map["County"].apply(filter_counties)
+        self.nyc_map = self.nyc_map[nyc_map_filter]
+        self.nyc_map = self.filter_neighborhoods(self.nyc_map, "Name")
+
+        return np.array(
+            [
+                self.nyc_map["center_longitude"].to_numpy(),
+                self.nyc_map["center_latitude"].to_numpy(),
+            ]
         )
 
-        if mode != "inference" and in_memory:
-            self.samples_labels = self.get_labels()
+    def get_locations(self) -> NDArray[np.floating]:
+        """"""
+        if self.locations is None:
+            self.locations = self.calculate_locations()
+        return self.locations
 
-        if self.in_memory:
-            self.loaded_samples = self.get_all_samples()
+    def calculate_haversine_distance(self, src: str, dest: str) -> float:
+        """"""
+        orig_long = self.nyc_map.loc[
+            self.nyc_map["Name"] == src, "center_longitude"
+        ].item()
+        orig_lat = self.nyc_map.loc[
+            self.nyc_map["Name"] == src, "center_latitude"
+        ].item()
 
-        if mode in {"train", "validation"}:
-            # Here split the 'seen' data to train and validation.
-            if self.in_memory:
-                self.seen_samples_labels = self.samples_labels[self.seen_data_indices]
-                self.seen_samples_data = self.loaded_samples[self.seen_data_indices]
+        dest_long = self.nyc_map.loc[
+            self.nyc_map["Name"] == dest, "center_longitude"
+        ].item()
+        dest_lat = self.nyc_map.loc[
+            self.nyc_map["Name"] == dest, "center_latitude"
+        ].item()
 
-            self.n_samples_seen = len(self.seen_data_indices)
-            self.tr_indices, self.val_indices = self.get_fold_indices(
-                self.n_samples_seen,
-                self.n_folds,
-                self.current_fold,
-            )
+        # Radius of the Earth in kilometers
+        R = 6371.0
 
-        if mode == "train":
-            self.selected_indices = self.tr_indices
-            if self.in_memory:
-                self.samples_labels = self.seen_samples_labels[self.tr_indices]
-                self.loaded_samples = self.seen_samples_data[self.tr_indices]
-        elif mode == "validation":
-            self.selected_indices = self.val_indices
-            if self.in_memory:
-                self.samples_labels = self.seen_samples_labels[self.val_indices]
-                self.loaded_samples = self.seen_samples_data[self.val_indices]
-        elif mode == "test":
-            self.selected_indices = self.unseen_data_indices
-            if self.in_memory:
-                self.samples_labels = self.samples_labels[self.unseen_data_indices]
-                self.loaded_samples = self.loaded_samples[self.unseen_data_indices]
-        elif mode != "inference":
-            raise ValueError(
-                "mode should be 'train', 'validation', 'test', or 'inference'"
-            )
-        if mode == "inference":
-            self.n_samples_in_split = self.n_samples_total
-        else:
-            self.n_samples_in_split = len(self.selected_indices)
+        # Convert latitude and longitude from degrees to radians
+        lat1_rad = math.radians(orig_lat)
+        lon1_rad = math.radians(orig_long)
+        lat2_rad = math.radians(dest_lat)
+        lon2_rad = math.radians(dest_long)
 
-    def __getitem__(self, index: int) -> tuple[Tensor, Tensor | None]:
-        """Get one sample."""
-        if self.in_memory:
-            label = (
-                None
-                if self.mode == "inference"
-                else torch.from_numpy(self.samples_labels[index]).to(self.device)
-            )
-            sample_data = torch.from_numpy(self.loaded_samples[index]).to(self.device)
-        else:
-            sample_data, label = self.get_sample_data(index)
-        return self.preprocess(sample_data), label
+        # Differences in coordinates
+        delta_lat = lat2_rad - lat1_rad
+        delta_lon = lon2_rad - lon1_rad
 
-    def __len__(self) -> int:
-        """Get length of dataset."""
-        return self.n_samples_in_split
-
-    @staticmethod
-    def get_number_of_samples() -> int:
-        """Find how many samples are expected in ALL dataset.
-
-        E.g., number of images in the target folder, number of rows in dataframe.
-        """
-        with open("./datasets/mock_dataset.csv", encoding="utf-8") as fp:
-            n_lines = len(fp.readlines())
-        return n_lines - 1
-
-    def get_labels(self) -> np.ndarray:
-        """Read and store labels in a numpy array.
-
-        Returns
-        -------
-        labels: numpy ndarray
-            An array stores the labels for each sample.
-        """
-        return pd.read_csv(self.path_to_data)["Label"].values
-
-    def get_sample_data(self, index: int) -> tuple[Tensor, Tensor]:
-        """
-        Get one sample data and its label (or any ground truth object).
-
-        If we cannot or do not want to store all the samples in memory, we need to
-        read the data based on selected indices (train, validation or test).
-
-        Parameters
-        ----------
-        index: integer
-            In-split index of the expected sample.
-            (e.g., 2 means the 3rd sample from validation split if mode is 'validation')
-
-        Returns
-        -------
-        tensor: torch Tensor
-            A torch tensor represents the data for the sample.
-        """
-
-        def skip_unselected(row_idx: int) -> bool:
-            if row_idx == 0:
-                return False
-            return row_idx != (self.selected_indices[index] + 1)
-
-        sample_data_row = pd.read_csv(self.path_to_data, skiprows=skip_unselected)
-        sample_data = (
-            torch.from_numpy(
-                sample_data_row.drop(["Sample ID", "Label"], axis="columns").values
-            )
-            .float()
-            .to(self.device)
+        # Haversine formula
+        a = (
+            math.sin(delta_lat / 2) ** 2
+            + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
         )
-        sample_label = torch.from_numpy(sample_data_row["Label"].values).to(self.device)
-        return sample_data, sample_label
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    def preprocess(self, data: Tensor) -> Tensor:  # noqa: PLR6301
-        """Apply any preprocessing method here."""
-        return data
+        # Distance in kilometers
+        distance = R * c
 
-    def get_all_samples(self) -> np.ndarray:
-        """
-        Convert data from all samples to the Torch Tensor objects to store in a list later.
+        return distance
 
-        This function can be memory-consuming but time-saving, recommended to be used on small datasets.
+    def calculate_distances(self) -> NDArray[np.floating]:
+        """"""
+        locations = self.get_locations()
+        size = len(self.nyc_neighborhoods)
+        dist_mat = np.zeros((size, size))
+        for i, src in enumerate(self.nyc_neighborhoods):
+            for j, dest in enumerate(self.nyc_neighborhoods):
+                if dest != src:
+                    dist = self.calculate_haversine_distance(src, dest)
+                    # dist = self.calculate_distance(src, dest)
+                    dist_mat[i, j] = dist
+        np.savetxt("distance_matrix_haversine.txt", dist_mat)
+        return dist_mat
 
-        Returns
-        -------
-        all_data: np.ndarray
-            A numpy array represents all data.
-        """
-        return pd.read_csv(self.path_to_data).drop(["Sample ID", "Label"]).values
+    def get_distances(self) -> NDArray[np.floating]:
+        """"""
+        if self.distances is None:
+            self.distances = self.calculate_distances()
+        return self.distances
 
-    @staticmethod
-    def get_fold_indices(
-        all_data_size: int, n_folds: int, fold_id: int = 0
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Create folds and get indices of train and validation datasets.
+    def create_nodes(self) -> dict:
+        """"""
+        self.get_locations()
+        # nodes = [(f"P{i+1}", row["Name"]) for i, row in self.nyc_map.iterrows()]
+        nodes = {
+            (f"V{i+1}", str(neigh)): np.array(
+                (
+                    self.nyc_map.loc[
+                        self.nyc_map["Name"] == neigh, "center_longitude"
+                    ].item(),
+                    self.nyc_map.loc[
+                        self.nyc_map["Name"] == neigh, "center_latitude"
+                    ].item(),
+                )
+            )
+            for i, neigh in enumerate(self.nyc_neighborhoods)
+        }
+        return nodes
 
-        Parameters
-        ----------
-        all_data_size: int
-            Size of all data.
-        fold_id: int
-            Which cross validation fold to get the indices for.
+    def get_nodes(self) -> dict:
+        """"""
+        if self.nodes is None:
+            self.nodes = self.create_nodes()
+        return self.nodes
 
-        Returns
-        -------
-        train_indices: numpy ndarray
-            Indices to get the training dataset.
-        val_indices: numpy ndarray
-            Indices to get the validation dataset.
-        """
-        kf = KFold(n_splits=n_folds, shuffle=True)
-        split_indices = kf.split(range(all_data_size))
-        train_indices, val_indices = [
-            (np.array(train), np.array(val)) for train, val in split_indices
-        ][fold_id]
-        # Split train and test
-        return train_indices, val_indices
+    def create_edges(self, adj: NDArray[np.floating], verbose: bool = True) -> list:
+        """"""
+        edges = []
+        for i, neigh_src in enumerate(self.nyc_neighborhoods):
+            for j, neigh_dest in enumerate(self.nyc_neighborhoods):
+                if adj[i, j] != 0:
+                    # print(f"Total demand via {i} to {j}: {adj[i, j]}")
+                    edges.append(
+                        (
+                            (f"V{i+1}", neigh_src),
+                            (f"V{j+1}", neigh_dest),
+                            {"demand": round(adj[i, j], 3)},
+                        )
+                    )
+        return edges
 
-    def __repr__(self) -> str:
-        """Return information about dataset as its string representation."""
-        return (
-            f"{self.__class__.__name__} dataset ({self.mode}) with"
-            f" n_samples={self.n_samples_in_split}, "
-            f"current fold:{self.current_fold + 1}/{self.n_folds}"
+    def get_edges(self, adj: NDArray[np.floating]) -> list:
+        """"""
+        if self.edges is None:
+            self.edges = self.create_edges(adj)
+        return self.edges
+
+    def create_graph(self, adj: NDArray[np.floating]) -> nx.Graph:
+        """"""
+        graph = nx.DiGraph()
+
+        graph.add_nodes_from(self.get_nodes())
+        graph.add_edges_from(self.get_edges(adj))
+
+        return graph
+
+    def visualize_solution(self, solution: NDArray[np.floating]) -> None:
+        """"""
+        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
+
+        graph = self.create_graph(solution)
+
+        self.nyc_map.plot(ax=ax, color="white", edgecolor="grey")
+        # # Draw and display plot
+        nx.draw_networkx(
+            graph,
+            pos=self.nodes,
+            # node_color=nx.get_node_attributes(graph, "color").values(),
+            ax=ax,
+            hide_ticks=False,
+            node_size=50,
+            font_size=6,
         )
+        plt.show()
+
+    def visualize(self, hubs: list[str] | None = None):
+        """"""
+        if hubs is None:
+            hubs = []
+        locations = self.get_locations()
+        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
+
+        self.nyc_map.plot(ax=ax, color="white", edgecolor="grey")
+
+        # for location in locations.T:
+        #     ax.plot(location[0], location[1], "go")
+        for i, row in self.nyc_map.iterrows():
+            mark = "r*" if row["Name"] in hubs else "go"
+            ax.plot(row["center"].x, row["center"].y, mark)
+            ax.annotate(row["Name"], (row["center"].x, row["center"].y))
+
+        plt.show()
 
 
-class MockDataset(BaseDataset):
-    """Mock dataset."""
-
-    def __init__(
-        self,
-        mode: str = "inference",
-        n_folds: int = 5,
-        current_fold: int = 0,
-        in_memory: bool = False,
-        device: str | torch.device | None = None,
-        random_seed: int = 0,
-    ):
-        mock_data_path = os.path.join(DATA_PATH, "mock_dataset.csv")
-        super().__init__(
-            mock_data_path, mode, n_folds, current_fold, in_memory, device, random_seed
-        )
+if __name__ == "__main__":
+    data = ServiceNetworkDataset()
+    hubs = [
+        "Castleton Corners",
+        "New Brighton",
+        "Oakwood",
+        "Prospect Heights",
+        "Red Hook",
+    ]
+    data.visualize(hubs)
