@@ -297,7 +297,7 @@ class ServiceNetworkDataset:
         """Get edges from defined attribute if available, otherwise calculate again."""
         if self.edges is None:
             self.edges = self.create_edges(adj)
-        return self.edges
+        return self.create_edges(adj)
 
     def create_graph(self, adj: NDArray[np.floating]) -> nx.Graph:
         """Create a networkx graph from a given adjacency matrix for available neighborhoods."""

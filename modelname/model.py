@@ -51,7 +51,7 @@ class HubLocationModel(OptimizationModel):
 
     def solve(
         self, distances: np.ndarray, demands: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray | None, ...]:
         """
         Build and solve the mathematical optimization of hub locations.
 
@@ -104,7 +104,7 @@ class HubLocationModel(OptimizationModel):
         self.optimal_arcs = self.build_solution_2d(y, self.n_nodes)
         return self.optimal_hubs, self.optimal_arcs
 
-    def get_solution(self) -> tuple[np.ndarray | None, np.ndarray | None]:
+    def get_solution(self) -> tuple[np.ndarray | None, ...]:
         """Return lastly solved model's solution."""
         return self.optimal_hubs, self.optimal_arcs
 
@@ -132,7 +132,7 @@ class ServiceNetworkModel(OptimizationModel):
         self.max_seats = max_seats
         self.budget = budget
         self.optimal_n_flights: np.ndarray | None = None  # f
-        self.optimal_trips: np.ndarray | None = None  # y
+        self.optimal_vertiports: np.ndarray | None = None  # y
         self.optimal_unsatisfied_demand: np.ndarray | None = None  # u
 
     @staticmethod
@@ -153,7 +153,7 @@ class ServiceNetworkModel(OptimizationModel):
         hub_zones: np.ndarray,  # solution of hub selection
         fixed_costs: np.ndarray,
         capacities: np.ndarray,
-    ) -> None:
+    ) -> tuple[np.ndarray | None, ...]:
         """
         Build and solve the mathematical optimization of service frequencies.
 
@@ -225,15 +225,20 @@ class ServiceNetworkModel(OptimizationModel):
         self.model.optimize()
 
         self.optimal_n_flights = self.build_solution_2d(f, self.n_nodes)
-        self.optimal_trips = self.build_solution_1d(y, self.n_nodes)
+        self.optimal_vertiports = self.build_solution_1d(y, self.n_nodes)
         self.optimal_unsatisfied_demand = self.build_solution_2d(u, self.n_nodes)
+        return (
+            self.optimal_n_flights,
+            self.optimal_vertiports,
+            self.optimal_unsatisfied_demand,
+        )
 
     def get_solution(
         self,
-    ) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+    ) -> tuple[np.ndarray | None, ...]:
         """Return lastly solved model's solution."""
         return (
             self.optimal_n_flights,
-            self.optimal_trips,
+            self.optimal_vertiports,
             self.optimal_unsatisfied_demand,
         )
