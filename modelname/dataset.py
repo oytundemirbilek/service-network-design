@@ -293,7 +293,7 @@ class ServiceNetworkDataset:
 
     def visualize_solution(self, solution: NDArray[np.floating]) -> None:
         """"""
-        fig, ax = plt.subplots(1, 1, figsize=(20, 20), dpi=300)
+        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
 
         graph = self.create_graph(solution)
 
