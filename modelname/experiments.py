@@ -32,10 +32,9 @@ class Experiment:
         model.solve(distances, demands)
         solution_hubs, solution_arcs = model.get_solution()
 
-        hub_names = list(data.nyc_neighborhoods[solution_hubs.astype(np.bool)])
-        print(hub_names)
-        print(np.all(solution_arcs == 0))
+        hub_names = data.nyc_neighborhoods[solution_hubs.astype(np.bool)].tolist()
 
+        print(hub_names)
         data.visualize(hub_names)
         data.visualize_solution(solution_arcs)
 

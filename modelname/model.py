@@ -10,7 +10,31 @@ import numpy as np
 gpvar = gp.tupledict[Any, gp.Var]
 
 
-class HubLocationModel:
+class OptimizationModel:
+    """Base class for common functions for all optimization models."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def build_solution_1d(self, x: gpvar, length: int) -> np.ndarray:
+        """Convert and return a 1-D gurobi solution variable into a numpy array."""
+        solution = []
+        for i in range(length):
+            solution.append(x[i].X)
+        return np.array(solution)
+
+    def build_solution_2d(self, x: gpvar, length: int) -> np.ndarray:
+        """Convert and return a 2-D gurobi solution variable into a numpy array."""
+        solution = []
+        for i in range(length):
+            solution_1d = []
+            for j in range(length):
+                solution_1d.append(x[i, j].X)
+            solution.append(solution_1d)
+        return np.array(solution)
+
+
+class HubLocationModel(OptimizationModel):
     """Model that solves a service coverage problem by finding the most optimal hubs."""
 
     def __init__(self, n_nodes: int, max_hubs: int = 10) -> None:
@@ -22,8 +46,28 @@ class HubLocationModel:
         self.optimal_arcs = None
         # previous solution: Chinatown, Gravesend, Clifton, Westerleigh, New Dorp Beach
 
-    def solve(self, distances: np.ndarray, demands: np.ndarray) -> None:
-        """Build and solve the mathematical optimization of hub locations."""
+    def solve(
+        self, distances: np.ndarray, demands: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Build and solve the mathematical optimization of hub locations.
+
+        Parameters
+        ----------
+        distances:
+            an adjacency matrix of pairwise distances between vertiports,
+            shape: (n_nodes, n_nodes).
+        demands:
+            an adjacency matrix of demands from each source and to each destination node,
+            shape: (n_nodes, n_nodes).
+
+        Returns
+        -------
+        hubs: np.ndarray
+            shape: (n_nodes)
+        arcs: np.ndarray
+            shape: (n_nodes, n_nodes)
+        """
         N = np.arange(self.n_nodes)
 
         x: gpvar = self.model.addVars(*N.shape, vtype=gp.GRB.BINARY, name="x")
@@ -32,17 +76,13 @@ class HubLocationModel:
         # Objective: Minimize total distance
         self.model.setObjective(
             gp.quicksum(
-                x[i] * y[i, j] / distances[i, j]
-                for i in N
-                for j in N
-                if demands[i, j] > 0
+                y[i, j] / distances[i, j] for i in N for j in N if demands[i, j] > 0
             ),
             gp.GRB.MAXIMIZE,
         )
-        # if demands[i, j] > 0
-        # y[i, j] * demands[i, j]  # (demands[i, j] - distances[i, j])
-        # for i in N
-        # for j in N
+        # + gp.quicksum(
+        #     x[i] * demands[i, j] for i in N for j in N
+        #     ),
 
         # Constraint 1: Select maximum n_hubs
         self.model.addConstr(x.sum() == self.max_hubs, "Select_hubs")
@@ -55,34 +95,16 @@ class HubLocationModel:
 
         self.model.optimize()
 
-        self.build_solution(x, y)
-
-    def build_solution(self, x: gpvar, y: gpvar) -> tuple[np.ndarray, np.ndarray]:
-        """Convert and return gurobi solution variables into numpy arrays."""
-        solution_hubs = []
-        for i in range(self.n_nodes):
-            solution_hubs.append(x[i].X)
-        solution_hubs = np.array(solution_hubs)
-
-        solution_arcs = []
-        for i in range(self.n_nodes):
-            solution_arc = []
-            for j in range(self.n_nodes):
-                solution_arc.append(y[i, j].X)
-            solution_arcs.append(solution_arc)
-        solution_arcs = np.array(solution_arcs)
-
-        self.optimal_hubs = solution_hubs
-        self.optimal_arcs = solution_arcs
-
-        return solution_hubs, solution_arcs
+        self.optimal_hubs = self.build_solution_1d(x, self.n_nodes)
+        self.optimal_arcs = self.build_solution_2d(y, self.n_nodes)
+        return self.optimal_hubs, self.optimal_arcs
 
     def get_solution(self) -> tuple[np.ndarray | None, np.ndarray | None]:
         """Return lastly solved model's solution."""
         return self.optimal_hubs, self.optimal_arcs
 
 
-class ServiceNetworkModel:
+class ServiceNetworkModel(OptimizationModel):
     """Model that solves a service coverage problem by finding the most optimal hubs."""
 
     def __init__(

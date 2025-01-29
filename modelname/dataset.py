@@ -20,10 +20,12 @@ MAPDATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "neighborhoods-in-new-y
 class ServiceNetworkDataset:
     """"""
 
-    def __init__(self, filename: str = "train_extended.csv") -> None:
-        # self.nyc_info: pd.DataFrame = pd.read_csv(
-        #     os.path.join(DATA_PATH, "nyc_additional_info.csv")
-        # )
+    def __init__(
+        self, filename: str = "train_extended.csv", data_path: str | None = None
+    ) -> None:
+        self.data_path = data_path
+        if self.data_path is None:
+            self.data_path = DATA_PATH
         self.nyc_map: pd.DataFrame = geopandas.read_file(
             os.path.join(MAPDATA_PATH, "ZillowNeighborhoods-NY.shp")
         )
@@ -45,10 +47,12 @@ class ServiceNetworkDataset:
         self.nodes = None
         self.edges = None
         self.locations = None
-        self.df: pd.DataFrame = pd.read_csv(os.path.join(DATA_PATH, filename))
+        self.df: pd.DataFrame = pd.read_csv(os.path.join(self.data_path, filename))
         self.nyc_neighborhoods = self.get_unique_neighborhoods()
 
-        clean_data_path = os.path.join(DATA_PATH, filename.split(".")[0] + "_clean.csv")
+        clean_data_path = os.path.join(
+            self.data_path, filename.split(".")[0] + "_clean.csv"
+        )
         if os.path.exists(clean_data_path):
             self.df = pd.read_csv(clean_data_path)
         else:
@@ -115,7 +119,7 @@ class ServiceNetworkDataset:
     def get_demands(self) -> NDArray[np.floating]:
         """"""
         if self.demand is None:
-            demand_path = os.path.join(DATA_PATH, "demand_matrix.txt")
+            demand_path = os.path.join(self.data_path, "demand_matrix.txt")
             if os.path.exists(demand_path):
                 self.demand = np.loadtxt(demand_path)
             else:
@@ -227,7 +231,9 @@ class ServiceNetworkDataset:
     def get_distances(self) -> NDArray[np.floating]:
         """"""
         if self.distances is None:
-            distances_path = os.path.join(DATA_PATH, "distance_matrix_haversine.txt")
+            distances_path = os.path.join(
+                self.data_path, "distance_matrix_haversine.txt"
+            )
             if os.path.exists(distances_path):
                 self.distances = np.loadtxt(distances_path)
             else:
@@ -291,7 +297,9 @@ class ServiceNetworkDataset:
 
         return graph
 
-    def visualize_solution(self, solution: NDArray[np.floating]) -> None:
+    def visualize_solution(
+        self, solution: NDArray[np.floating], show: bool = True
+    ) -> None:
         """"""
         fig, ax = plt.subplots(1, 1, figsize=(9, 9))
 
@@ -308,9 +316,10 @@ class ServiceNetworkDataset:
             node_size=50,
             font_size=6,
         )
-        plt.show()
+        if show:
+            plt.show()
 
-    def visualize(self, hubs: list[str] | None = None):
+    def visualize(self, hubs: list[str] | None = None, show: bool = True):
         """"""
         if hubs is None:
             hubs = []
@@ -326,7 +335,8 @@ class ServiceNetworkDataset:
             ax.plot(row["center"].x, row["center"].y, mark)
             ax.annotate(row["Name"], (row["center"].x, row["center"].y))
 
-        plt.show()
+        if show:
+            plt.show()
 
 
 if __name__ == "__main__":
