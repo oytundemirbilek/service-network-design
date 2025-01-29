@@ -21,7 +21,6 @@ class ServiceNetworkDataset:
     """"""
 
     def __init__(self, filename: str = "train_extended.csv") -> None:
-        self.df: pd.DataFrame = pd.read_csv(os.path.join(DATA_PATH, filename))
         # self.nyc_info: pd.DataFrame = pd.read_csv(
         #     os.path.join(DATA_PATH, "nyc_additional_info.csv")
         # )
@@ -46,9 +45,15 @@ class ServiceNetworkDataset:
         self.nodes = None
         self.edges = None
         self.locations = None
+        self.df: pd.DataFrame = pd.read_csv(os.path.join(DATA_PATH, filename))
         self.nyc_neighborhoods = self.get_unique_neighborhoods()
 
-        self.df = self.clean_data(self.df)
+        clean_data_path = os.path.join(DATA_PATH, filename.split(".")[0] + "_clean.csv")
+        if os.path.exists(clean_data_path):
+            self.df = pd.read_csv(clean_data_path)
+        else:
+            self.df = self.clean_data(self.df)
+            self.df.to_csv(clean_data_path, index=False)
 
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """"""
@@ -105,13 +110,17 @@ class ServiceNetworkDataset:
                 ]
                 if not pairs.empty:
                     demand_mat[i, j] = pairs["passenger_count"].item()
-        np.savetxt("demand_matrix.txt", demand_mat)
         return demand_mat
 
     def get_demands(self) -> NDArray[np.floating]:
         """"""
         if self.demand is None:
-            self.demand = self.calculate_demand()
+            demand_path = os.path.join(DATA_PATH, "demand_matrix.txt")
+            if os.path.exists(demand_path):
+                self.demand = np.loadtxt(demand_path)
+            else:
+                self.demand = self.calculate_demand()
+                np.savetxt(demand_path, self.demand)
 
         return self.demand
 
@@ -213,13 +222,17 @@ class ServiceNetworkDataset:
                     dist = self.calculate_haversine_distance(src, dest)
                     # dist = self.calculate_distance(src, dest)
                     dist_mat[i, j] = dist
-        np.savetxt("distance_matrix_haversine.txt", dist_mat)
         return dist_mat
 
     def get_distances(self) -> NDArray[np.floating]:
         """"""
         if self.distances is None:
-            self.distances = self.calculate_distances()
+            distances_path = os.path.join(DATA_PATH, "distance_matrix_haversine.txt")
+            if os.path.exists(distances_path):
+                self.distances = np.loadtxt(distances_path)
+            else:
+                self.distances = self.calculate_distances()
+                np.savetxt(distances_path, self.distances)
         return self.distances
 
     def create_nodes(self) -> dict:
