@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import gurobipy as gp
 import numpy as np
 
-gpvar = gp.tupledict[Any, gp.Var]
+if TYPE_CHECKING:
+    gpvar = gp.tupledict[Any, gp.Var]
 
 
 class OptimizationModel:

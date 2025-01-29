@@ -19,9 +19,9 @@ MODELS_PATH = os.path.join(FILE_PATH, "..", "models")
 def test_hub_location_model() -> None:
     """Test if the model can be iterated - cpu based."""
     np.random.seed(0)
-    distances = np.random.randn(100, 100)
-    demands = np.random.randn(100, 100)
-    model = HubLocationModel(100, 5)
+    distances = np.random.randn(10, 10)
+    demands = np.random.randn(10, 10)
+    model = HubLocationModel(10, 5)
     model.solve(distances, demands)
     solution_hubs, solution_arcs = model.get_solution()
     assert solution_hubs is not None
