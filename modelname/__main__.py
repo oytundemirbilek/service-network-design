@@ -31,9 +31,10 @@ def parse_args() -> Namespace:
 
 def main() -> None:
     """Run main function from CLI."""
-    args = parse_args()
+    parse_args()
 
     exp = Experiment()
+    exp.run()
 
 
 if __name__ == "__main__":

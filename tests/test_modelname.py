@@ -18,7 +18,7 @@ MODELS_PATH = os.path.join(FILE_PATH, "..", "models")
 
 
 def test_hub_location_model() -> None:
-    """Test if the model can be iterated - cpu based."""
+    """Test if the hub location model could be built and solved."""
     np.random.seed(0)
     n_nodes = 10
     distances = np.random.randn(n_nodes, n_nodes)
@@ -33,7 +33,7 @@ def test_hub_location_model() -> None:
 
 
 def test_service_network_model() -> None:
-    """Test if the model can be iterated - cpu based."""
+    """Test if the service network model could be built and solved."""
     np.random.seed(0)
     n_nodes = 10
     distances = np.random.randn(n_nodes, n_nodes)
@@ -51,7 +51,7 @@ def test_service_network_model() -> None:
 
 
 def test_service_network_data() -> None:
-    """"""
+    """Test if the data operations can be done correctly."""
     n_nodes = 59
     n_edges = 254
     dataset = ServiceNetworkDataset("mock_data.csv", TEST_INPUT_PATH)
@@ -69,4 +69,4 @@ def test_service_network_data() -> None:
     edges = dataset.get_edges(demands)
     assert len(edges) == n_edges, len(edges)
 
-    dataset.visualize(["Dyker Heights", "Kensington", "Harlem"], False)
+    dataset.visualize_hubs(["Dyker Heights", "Kensington", "Harlem"], False)

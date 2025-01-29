@@ -5,9 +5,6 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import numpy as np
-import pandas as pd
-
 from modelname.dataset import ServiceNetworkDataset
 from modelname.model import HubLocationModel
 
@@ -20,22 +17,25 @@ class Experiment:
     def __init__(self, **kwargs: Any) -> None:
         """Initialize with kwargs."""
 
-    def run(self) -> None:
+    @staticmethod
+    def run() -> None:
+        """Run an experiment to select the hub locations and service frequencies."""
         data = ServiceNetworkDataset()
 
-        nodes = data.nyc_neighborhoods
-        N = np.arange(len(nodes))
-        distances = data.get_distances()  # from node i to node j
-        demands = data.get_demands()  # between node i and node j
+        distances = data.get_distances()
+        demands = data.get_demands()
 
-        model = HubLocationModel(len(nodes), 5)
+        model = HubLocationModel(len(data.nyc_neighborhoods), 5)
         model.solve(distances, demands)
         solution_hubs, solution_arcs = model.get_solution()
 
-        hub_names = data.nyc_neighborhoods[solution_hubs.astype(np.bool)].tolist()
+        if solution_arcs is None or solution_hubs is None:
+            return
+
+        hub_names = data.nyc_neighborhoods[solution_hubs.astype(bool)].tolist()
 
         print(hub_names)
-        data.visualize(hub_names)
+        data.visualize_hubs(hub_names)
         data.visualize_solution(solution_arcs)
 
 

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import gurobipy as gp
 import numpy as np
 
 if TYPE_CHECKING:
-    gpvar = gp.tupledict[Any, gp.Var]
+    gpvar: TypeAlias = gp.tupledict[Any, gp.Var]
 
 
 class OptimizationModel:
@@ -45,9 +45,8 @@ class HubLocationModel(OptimizationModel):
         self.model = gp.Model("Hub selection")
         self.n_nodes = n_nodes
         self.max_hubs = max_hubs
-        self.optimal_hubs = None
-        self.optimal_arcs = None
-        # previous solution: Chinatown, Gravesend, Clifton, Westerleigh, New Dorp Beach
+        self.optimal_hubs: np.ndarray | None = None
+        self.optimal_arcs: np.ndarray | None = None
 
     def solve(
         self, distances: np.ndarray, demands: np.ndarray
@@ -71,15 +70,15 @@ class HubLocationModel(OptimizationModel):
         arcs: np.ndarray
             shape: (n_nodes, n_nodes)
         """
-        N = np.arange(self.n_nodes)
+        ns = np.arange(self.n_nodes)
 
-        x: gpvar = self.model.addVars(*N.shape, vtype=gp.GRB.BINARY, name="x")
+        x: gpvar = self.model.addVars(*ns.shape, vtype=gp.GRB.BINARY, name="x")
         y: gpvar = self.model.addVars(*distances.shape, vtype=gp.GRB.BINARY, name="y")
 
         # Objective: Minimize total distance
         self.model.setObjective(
             gp.quicksum(
-                y[i, j] / distances[i, j] for i in N for j in N if demands[i, j] > 0
+                y[i, j] / distances[i, j] for i in ns for j in ns if demands[i, j] > 0
             ),
             gp.GRB.MAXIMIZE,
         )
@@ -91,10 +90,12 @@ class HubLocationModel(OptimizationModel):
         self.model.addConstr(x.sum() == self.max_hubs, "Select_hubs")
 
         # Constraint 2: Each location j must be assigned to one or no hub
-        self.model.addConstrs((y.sum("*", j) <= 1 for j in N), "Assign_each_location")
+        self.model.addConstrs((y.sum("*", j) <= 1 for j in ns), "Assign_each_location")
 
         # Constraint 3: A location j can only be assigned to a hub i if i is selected as a hub
-        self.model.addConstrs((y[i, j] <= x[i] for i in N for j in N), "Assign_to_hub")
+        self.model.addConstrs(
+            (y[i, j] <= x[i] for i in ns for j in ns), "Assign_to_hub"
+        )
 
         self.model.optimize()
 
@@ -129,12 +130,13 @@ class ServiceNetworkModel(OptimizationModel):
         self.cost_per_km = cost_per_km
         self.max_seats = max_seats
         self.budget = budget
-        self.optimal_n_flights = None  # f
-        self.optimal_trips = None  # y
-        self.optimal_unsatisfied_demand = None  # u
+        self.optimal_n_flights: np.ndarray | None = None  # f
+        self.optimal_trips: np.ndarray | None = None  # y
+        self.optimal_unsatisfied_demand: np.ndarray | None = None  # u
 
+    @staticmethod
     def redirect_flights(
-        self, demands: np.ndarray, hub_indices: np.ndarray, hub_zones: np.ndarray
+        demands: np.ndarray, hub_indices: np.ndarray, hub_zones: np.ndarray
     ) -> np.ndarray:
         """Transform the demand matrix in a way to redirect some flights to hubs."""
         # NOTE: maybe dataset class is a better place for this.
@@ -174,29 +176,29 @@ class ServiceNetworkModel(OptimizationModel):
             a float array listing capacity for each vertiport. shape: (n_nodes)
         """
         # zero-out all arcs that are not supposed to be connected.
-        distances = distances * hub_zones
+        distances *= hub_zones
         # Create extra flights that need to be transferred from a hub.
         demands = self.redirect_flights(demands, hub_indices, hub_zones)
 
         # Indices
-        N = np.arange(self.n_nodes)
+        ns = np.arange(self.n_nodes)
 
         # Parameters
         p = self.price_per_km
         b = self.base_price
         c = self.cost_per_km
-        S = self.max_seats
+        s = self.max_seats
 
         # Decision variables
         f: gpvar = self.model.addVars(*distances.shape, vtype=gp.GRB.INTEGER, name="f")
-        y: gpvar = self.model.addVars(*N.shape, vtype=gp.GRB.BINARY, name="y")
+        y: gpvar = self.model.addVars(*ns.shape, vtype=gp.GRB.BINARY, name="y")
         u: gpvar = self.model.addVars(*distances.shape, vtype=gp.GRB.INTEGER, name="u")
 
         # Objective: maximize profit
         profits = gp.quicksum(
-            f[i, j] * (b + p * distances[i, j] - c) for i in N for j in N
+            f[i, j] * (b + p * distances[i, j] - c) for i in ns for j in ns
         )
-        total_fixed_costs = gp.quicksum(fixed_costs[i] * y[i] for i in N)
+        total_fixed_costs = gp.quicksum(fixed_costs[i] * y[i] for i in ns)
         self.model.setObjective(profits - total_fixed_costs, gp.GRB.MAXIMIZE)
 
         # Hubs should be open NOTE: maybe same solution when we remove this?
@@ -204,15 +206,15 @@ class ServiceNetworkModel(OptimizationModel):
 
         # Demand satisfaction
         self.model.addConstrs(
-            f[i, j] * S >= demands[i, j] - u[i, j] for i in N for j in N
+            f[i, j] * s >= demands[i, j] - u[i, j] for i in ns for j in ns
         )
 
         # Flow conversation
-        self.model.addConstrs(f[i, j] == f[j, i] for i in N for j in N)
+        self.model.addConstrs(f[i, j] == f[j, i] for i in ns for j in ns)
 
         # Capacity
         self.model.addConstrs(
-            gp.quicksum(f[i, j] for j in N) <= capacities[i] * y[i] for i in N
+            gp.quicksum(f[i, j] for j in ns) <= capacities[i] * y[i] for i in ns
         )
 
         # Budget

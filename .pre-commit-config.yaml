@@ -53,7 +53,7 @@ repos:
             false
           - "--"
         types: ["binary"]
-        exclude: "(?i)\\.(png|jpg|pth)"
+        exclude: "((?i)\\.(png|jpg|pth)|(?i)datasets/.*)"
 
       - id: check-utf8
         name: Check text files for UTF-8 Encoding
@@ -69,7 +69,7 @@ repos:
             done
             [[ ${is_failed} == 0 ]] || false
           - "--"
-        exclude: "(?i)\\.(png|jpg|pth)"
+        exclude: "((?i)\\.(png|jpg|pth)|(?i)datasets/.*)"
 
       - id: check-eol
         name: Check text files for correct end of line sequence

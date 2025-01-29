@@ -154,7 +154,7 @@ verbose = true
 [tool.ruff]
 target-version = "py310"
 extend-include = ["*.ipynb", ".*_version.py"]
-output-format = "grouped"
+output-format = "concise"
 line-length = 120
 
 [tool.ruff.lint]
@@ -180,7 +180,8 @@ select = [
 ]
 extend-ignore = [
     "E203",
-    "D107"
+    "D107",
+    "PT001",
 ]
 
 mccabe.max-complexity = 18
