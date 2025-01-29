@@ -32,20 +32,17 @@ class HubLocationModel:
         # Objective: Minimize total distance
         self.model.setObjective(
             gp.quicksum(
-                x[i]
-                * y[i, j]
-                * (demands[i, j] + demands[j, i])
-                / (1000 * distances[i, j])
+                x[i] * y[i, j] / distances[i, j]
                 for i in N
                 for j in N
-                # if demands[i, j] > 0
-                # y[i, j] * demands[i, j]  # (demands[i, j] - distances[i, j])
-                # for i in N
-                # for j in N
-                if distances[i, j] > 0
+                if demands[i, j] > 0
             ),
             gp.GRB.MAXIMIZE,
         )
+        # if demands[i, j] > 0
+        # y[i, j] * demands[i, j]  # (demands[i, j] - distances[i, j])
+        # for i in N
+        # for j in N
 
         # Constraint 1: Select maximum n_hubs
         self.model.addConstr(x.sum() == self.max_hubs, "Select_hubs")
