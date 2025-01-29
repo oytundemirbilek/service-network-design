@@ -7,10 +7,10 @@ import os
 
 import geopandas
 import matplotlib.pyplot as plt
-import numpy as np
-from numpy.typing import NDArray
-import pandas as pd
 import networkx as nx
+import numpy as np
+import pandas as pd
+from numpy.typing import NDArray
 
 FILE_PATH = os.path.dirname(__file__)
 DATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "nyc-taxi-trip-duration-extended")

@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from modelname.dataset import ServiceNetworkDataset
 from modelname.model import HubLocationModel

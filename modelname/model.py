@@ -17,14 +17,16 @@ class OptimizationModel:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def build_solution_1d(self, x: gpvar, length: int) -> np.ndarray:
+    @staticmethod
+    def build_solution_1d(x: gpvar, length: int) -> np.ndarray:
         """Convert and return a 1-D gurobi solution variable into a numpy array."""
         solution = []
         for i in range(length):
             solution.append(x[i].X)
         return np.array(solution)
 
-    def build_solution_2d(self, x: gpvar, length: int) -> np.ndarray:
+    @staticmethod
+    def build_solution_2d(x: gpvar, length: int) -> np.ndarray:
         """Convert and return a 2-D gurobi solution variable into a numpy array."""
         solution = []
         for i in range(length):
@@ -178,7 +180,6 @@ class ServiceNetworkModel(OptimizationModel):
 
         # Indices
         N = np.arange(self.n_nodes)
-        A = np.arange(self.n_nodes, self.n_nodes)
 
         # Parameters
         p = self.price_per_km
@@ -187,9 +188,9 @@ class ServiceNetworkModel(OptimizationModel):
         S = self.max_seats
 
         # Decision variables
-        f: gpvar = self.model.addVars(*A.shape, vtype=gp.GRB.INTEGER, name="f")
+        f: gpvar = self.model.addVars(*distances.shape, vtype=gp.GRB.INTEGER, name="f")
         y: gpvar = self.model.addVars(*N.shape, vtype=gp.GRB.BINARY, name="y")
-        u: gpvar = self.model.addVars(*A.shape, vtype=gp.GRB.INTEGER, name="u")
+        u: gpvar = self.model.addVars(*distances.shape, vtype=gp.GRB.INTEGER, name="u")
 
         # Objective: maximize profit
         profits = gp.quicksum(
@@ -219,3 +220,17 @@ class ServiceNetworkModel(OptimizationModel):
             self.model.addConstr(total_fixed_costs <= self.budget)
 
         self.model.optimize()
+
+        self.optimal_n_flights = self.build_solution_2d(f, self.n_nodes)
+        self.optimal_trips = self.build_solution_1d(y, self.n_nodes)
+        self.optimal_unsatisfied_demand = self.build_solution_2d(u, self.n_nodes)
+
+    def get_solution(
+        self,
+    ) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+        """Return lastly solved model's solution."""
+        return (
+            self.optimal_n_flights,
+            self.optimal_trips,
+            self.optimal_unsatisfied_demand,
+        )
