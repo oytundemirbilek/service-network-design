@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any
 
 import gurobipy as gp
 import numpy as np
+from typing_extensions import TypeAlias  # noqa: UP035
 
 if TYPE_CHECKING:
     gpvar: TypeAlias = gp.tupledict[Any, gp.Var]
