@@ -7,6 +7,8 @@ class ModelParameters:
         self.fixed_cost_vertiport = 56 #dollar daily
         self.fixed_cost_hub = 264 #dollar daily
         self.variable_cost_per_km = 0.95 #dollar per km
+        self.cap_vertiport = 3
+        self.cap_hub = 15
 
     def get_total_price(self, distance) -> np.ndarray:
         distances = np.asarray(distance)
