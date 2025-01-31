@@ -39,11 +39,9 @@ def test_service_network_model() -> None:
     distances = np.random.randn(n_nodes, n_nodes)
     demands = np.random.randn(n_nodes, n_nodes)
     model = ServiceNetworkModel(n_nodes, 2.0, 1.5, 0.5)
-    hubs = np.concatenate([np.ones(n_nodes // 2), np.zeros(n_nodes // 2)])
-    hub_zones = np.ones_like(distances)
     fixed_costs = np.ones(n_nodes) * 10.0
     capacities = np.ones(n_nodes) * 5
-    model.solve(distances, demands, hubs, hub_zones, fixed_costs, capacities)
+    model.solve(distances, demands, fixed_costs, capacities)
     solution_nflights, solution_trips, solution_u = model.get_solution()
     assert solution_nflights is not None
     assert solution_trips is not None
