@@ -115,13 +115,9 @@ class Experiment:
             params.variable_cost_per_km,
         )
         service_model.solve(distances, demands, fixed_costs, capacities)
-        solution_flights, solution_vertiports, solution_u = service_model.get_solution()
+        solution_flights, solution_vertiports = service_model.get_solution()
 
-        if (
-            solution_flights is None
-            or solution_vertiports is None
-            or solution_u is None
-        ):
+        if solution_flights is None or solution_vertiports is None:
             return
 
         removed_port_names = data.nyc_neighborhoods[

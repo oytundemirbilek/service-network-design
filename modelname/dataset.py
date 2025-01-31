@@ -351,6 +351,7 @@ class ServiceNetworkDataset:
                 edge_labels=edge_labels,
                 font_color="red",
                 font_size=6,
+                label_pos=0.9,
             )
 
         if show:
