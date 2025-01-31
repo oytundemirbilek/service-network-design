@@ -12,8 +12,8 @@ class ModelParameters:
         self.fixed_cost_vertiport = 56.0  # dollar daily
         self.fixed_cost_hub = 264.0  # dollar daily
         self.variable_cost_per_km = 0.95  # dollar per km
-        self.cap_vertiport = 3
-        self.cap_hub = 15
+        self.cap_vertiport = 180
+        self.cap_hub = 900
 
     def get_total_price(self, distance: np.ndarray) -> np.ndarray:
         """Derive and return the price matrix from a given distance matrix."""
