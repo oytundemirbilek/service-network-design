@@ -308,8 +308,24 @@ class ServiceNetworkDataset:
 
         return graph
 
+    def create_edge_labels(self, adj: NDArray[np.floating]) -> dict[Any, Any]:
+        """Create edge labels from given adjacency matrix."""
+        edges = {}
+        for i, neigh_src in enumerate(self.nyc_neighborhoods):
+            for j, neigh_dest in enumerate(self.nyc_neighborhoods):
+                if adj[i, j] != 0:
+                    # print(f"Total demand via {i} to {j}: {adj[i, j]}")
+                    edges[((f"V{i}", neigh_src), (f"V{j}", neigh_dest))] = round(
+                        adj[i, j], 3
+                    )
+
+        return edges
+
     def visualize_solution(
-        self, solution: NDArray[np.floating], show: bool = True
+        self,
+        solution: NDArray[np.floating],
+        show_edges: bool = True,
+        show: bool = True,
     ) -> None:
         """Plot the graph based on the given solution adjacency matrix."""
         _fig, ax = plt.subplots(1, 1, figsize=(9, 9))
@@ -327,6 +343,16 @@ class ServiceNetworkDataset:
             node_size=50,
             font_size=6,
         )
+        if show_edges and self.nodes is not None:
+            edge_labels = self.create_edge_labels(solution)
+            nx.draw_networkx_edge_labels(
+                graph,
+                pos=self.nodes,
+                edge_labels=edge_labels,
+                font_color="red",
+                font_size=6,
+            )
+
         if show:
             plt.show()
 

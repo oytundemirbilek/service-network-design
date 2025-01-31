@@ -40,32 +40,30 @@ class Experiment:
         hub_names = data.nyc_neighborhoods[solution_hubs.astype(bool)].tolist()
 
         print(hub_names)
-        data.visualize_hubs(hub_names)
+        # data.visualize_hubs(hub_names)
         data.visualize_solution(solution_arcs)
 
         params = ModelParameters()
 
-        hub_ind = solution_hubs.astype(bool)
-        vertiport_ind = np.invert(hub_ind)
+        # hub_ind = solution_hubs.astype(bool)
+        # vertiport_ind = np.invert(hub_ind)
 
-        fixed_costs = np.ones(n_nodes)
-        fixed_costs[hub_ind] *= params.fixed_cost_hub
-        fixed_costs[vertiport_ind] *= params.fixed_cost_vertiport
+        fixed_costs = np.ones(n_nodes) * 6 * 30 * params.fixed_cost_vertiport
+        # fixed_costs[hub_ind] *= params.fixed_cost_hub
+        # fixed_costs[vertiport_ind] *= params.fixed_cost_vertiport
 
-        capacities = np.ones(n_nodes)
-        capacities[hub_ind] *= params.cap_hub
-        capacities[vertiport_ind] *= params.cap_vertiport
+        capacities = np.ones(n_nodes) * 6 * 30 * params.cap_vertiport
+        # capacities[hub_ind] *= params.cap_hub
+        # capacities[vertiport_ind] *= params.cap_vertiport
 
         service_model = ServiceNetworkModel(
             n_nodes,
             params.base_price,
             params.price_per_km,
             params.variable_cost_per_km,
-            n_hubs=self.n_hubs,
+            # n_hubs=self.n_hubs,
         )
-        service_model.solve(
-            distances, demands, solution_hubs, solution_arcs, fixed_costs, capacities
-        )
+        service_model.solve(distances, demands, fixed_costs, capacities)
         solution_flights, solution_vertiports, solution_u = service_model.get_solution()
 
         if (
@@ -79,7 +77,7 @@ class Experiment:
             ~solution_vertiports.astype(bool)
         ].tolist()
         print(removed_port_names)
-        data.visualize_hubs(removed_port_names)
+        # data.visualize_hubs(removed_port_names)
         data.visualize_solution(solution_flights)
 
 
