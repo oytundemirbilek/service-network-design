@@ -1,4 +1,10 @@
-# ml-template-torch
-Plugging-in/out datasets, ablated models, loss functions etc. are often very time-consuming due to structural differences between different implementations. Here there are some bundled functions and classes that are most used for torch-based machine learning projects to organize benchmarking process and save time.
+# How to run the project
 
-Feel free to open issues and pull requests.
+1. Download the dataset by running the code in download_data.ipynb (We need to fix the issue of taxi data movement to the datasets folder)
+
+
+
+
+# File explaination
+
+1. Project_overview.ipynb: Provides a overview of the** ****Advanced Air Mobility (AAM) Network Design** project. It outlines the core concept, objectives, and the mathematical model used to optimize vertiport connectivity and flight operations.
