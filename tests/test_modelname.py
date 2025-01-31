@@ -36,16 +36,15 @@ def test_service_network_model() -> None:
     """Test if the service network model could be built and solved."""
     np.random.seed(0)
     n_nodes = 10
-    distances = np.random.randn(n_nodes, n_nodes)
-    demands = np.random.randn(n_nodes, n_nodes)
+    distances = np.random.randint(0, 100, (n_nodes, n_nodes))
+    demands = np.random.randint(0, 100, (n_nodes, n_nodes))
     model = ServiceNetworkModel(n_nodes, 2.0, 1.5, 0.5)
     fixed_costs = np.ones(n_nodes) * 10.0
     capacities = np.ones(n_nodes) * 5
     model.solve(distances, demands, fixed_costs, capacities)
-    solution_nflights, solution_trips, solution_u = model.get_solution()
+    solution_nflights, solution_trips = model.get_solution()
     assert solution_nflights is not None
     assert solution_trips is not None
-    assert solution_u is not None
 
 
 def test_service_network_data() -> None:

@@ -34,7 +34,7 @@ def main() -> None:
     parse_args()
 
     exp = Experiment()
-    exp.run()
+    exp.run_wo_hubs()
 
 
 if __name__ == "__main__":
