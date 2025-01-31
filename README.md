@@ -5,6 +5,6 @@
 
 
 
-# File explaination
+# File explanation
 
 1. Project_overview.ipynb: Provides a overview of the** ****Advanced Air Mobility (AAM) Network Design** project. It outlines the core concept, objectives, and the mathematical model used to optimize vertiport connectivity and flight operations.
