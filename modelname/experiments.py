@@ -9,6 +9,7 @@ import numpy as np
 
 from modelname.dataset import ServiceNetworkDataset
 from modelname.model import HubLocationModel, ServiceNetworkModel
+from modelname.parameters import ModelParameters
 
 FILE_PATH = os.path.dirname(__file__)
 
@@ -20,7 +21,7 @@ class Experiment:
         """Initialize with kwargs."""
         self.n_hubs = 5
 
-    def run(self) -> None:
+    def run(self) -> None:  # noqa: PLR0914
         """Run an experiment to select the hub locations and service frequencies."""
         data = ServiceNetworkDataset()
 
@@ -42,9 +43,26 @@ class Experiment:
         data.visualize_hubs(hub_names)
         data.visualize_solution(solution_arcs)
 
-        fixed_costs = np.ones(n_nodes) * 10.0
-        capacities = np.ones(n_nodes) * 10
-        service_model = ServiceNetworkModel(n_nodes, 3, 1.5, 0.5, n_hubs=self.n_hubs)
+        params = ModelParameters()
+
+        hub_ind = solution_hubs.astype(bool)
+        vertiport_ind = np.invert(hub_ind)
+
+        fixed_costs = np.ones(n_nodes)
+        fixed_costs[hub_ind] *= params.fixed_cost_hub
+        fixed_costs[vertiport_ind] *= params.fixed_cost_vertiport
+
+        capacities = np.ones(n_nodes)
+        capacities[hub_ind] *= params.cap_hub
+        capacities[vertiport_ind] *= params.cap_vertiport
+
+        service_model = ServiceNetworkModel(
+            n_nodes,
+            params.base_price,
+            params.price_per_km,
+            params.variable_cost_per_km,
+            n_hubs=self.n_hubs,
+        )
         service_model.solve(
             distances, demands, solution_hubs, solution_arcs, fixed_costs, capacities
         )

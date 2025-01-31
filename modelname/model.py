@@ -197,7 +197,7 @@ class ServiceNetworkModel(OptimizationModel):
 
         # Objective: maximize profit
         profits = gp.quicksum(
-            f[i, j] * (b + p * distances[i, j] - c) for i in ns for j in ns
+            f[i, j] * (b + (p - c) * distances[i, j]) for i in ns for j in ns
         )
         total_fixed_costs = gp.quicksum(fixed_costs[i] * y[i] for i in ns)
         self.model.setObjective(profits - total_fixed_costs, gp.GRB.MAXIMIZE)
