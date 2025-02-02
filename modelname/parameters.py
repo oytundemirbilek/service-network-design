@@ -9,7 +9,7 @@ class ModelParameters:
     def __init__(self) -> None:
         self.base_price = 45.0  # dollar per seat
         self.price_per_km = 3.0  # dollar per km per seat
-        self.fixed_cost_vertiport = 56.0  # dollar daily
+        self.fixed_cost_vertiport = 136.0  # dollar daily
         self.fixed_cost_hub = 264.0  # dollar daily
         self.variable_cost_per_km = 0.95  # dollar per km
         self.cap_vertiport = 180
