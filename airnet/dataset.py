@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import math
 import os
+import shutil
 from typing import Any
 
 import geopandas
+import kagglehub
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -22,11 +24,17 @@ class ServiceNetworkDataset:
     """An utility class that performs various data operations."""
 
     def __init__(
-        self, filename: str = "train_extended.csv", data_path: str | None = None
+        self,
+        filename: str = "train_extended.csv",
+        data_path: str | None = None,
+        download: bool = False,
     ) -> None:
         if data_path is None:
             data_path = DATA_PATH
         self.data_path = data_path
+        if not os.path.exists(self.data_path) and download:
+            self.download_data()
+
         self.nyc_map: pd.DataFrame = geopandas.read_file(
             os.path.join(MAPDATA_PATH, "ZillowNeighborhoods-NY.shp")
         )
@@ -59,6 +67,14 @@ class ServiceNetworkDataset:
         else:
             self.df = self.clean_data(self.df)
             self.df.to_csv(clean_data_path, index=False)
+
+    def download_data(self) -> None:
+        """Download kaggle dataset into the datapath folder."""
+        path = kagglehub.dataset_download(
+            "neomatrix369/nyc-taxi-trip-duration-extended"
+        )
+        shutil.move(path, self.data_path)
+        print("Dataset successfully downloaded in:", self.data_path)
 
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """

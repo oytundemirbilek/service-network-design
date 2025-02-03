@@ -6,8 +6,8 @@ import os
 
 import numpy as np
 
-from modelname.dataset import ServiceNetworkDataset
-from modelname.model import HubLocationModel, ServiceNetworkModel
+from airnet.dataset import ServiceNetworkDataset
+from airnet.model import HubLocationModel, ServiceNetworkModel
 
 FILE_PATH = os.path.dirname(__file__)
 MAPDATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "neighborhoods-in-new-york")

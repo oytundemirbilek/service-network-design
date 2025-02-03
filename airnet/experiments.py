@@ -8,9 +8,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from modelname.dataset import ServiceNetworkDataset
-from modelname.model import HubLocationModel, ServiceNetworkModel
-from modelname.parameters import ModelParameters
+from airnet.dataset import ServiceNetworkDataset
+from airnet.model import HubLocationModel, ServiceNetworkModel
+from airnet.parameters import ModelParameters
 
 FILE_PATH = os.path.dirname(__file__)
 
@@ -27,64 +27,14 @@ class Experiment:
         self.vertiports: np.ndarray | None = None
         self.service_model: ServiceNetworkModel | None = None
 
-        self.data = ServiceNetworkDataset()
-
-    @staticmethod
-    def run_mock_sample() -> None:
-        """Run an experiment to select the service frequencies on a mock example."""
-        data = ServiceNetworkDataset()
-        data.nyc_neighborhoods = np.array(
-            [
-                "Belle Harbor",
-                "Chinatown",
-                "Clifton",
-                "Clinton Hill",
-                "East Village",
-                "Gravesend",
-                "Shore Acres",
-                "Westerleigh",
-                "Woodrow",
-            ]
-        )
-        n_nodes = len(data.nyc_neighborhoods)
-        distances = data.calculate_distances()
-        demands = data.calculate_demand()
-
-        params = ModelParameters()
-
-        # hub_ind = solution_hubs.astype(bool)
-        # vertiport_ind = np.invert(hub_ind)
-
-        fixed_costs = np.ones(n_nodes) * 6 * 30 * params.fixed_cost_hub
-        # fixed_costs[hub_ind] *= params.fixed_cost_hub
-        # fixed_costs[vertiport_ind] *= params.fixed_cost_vertiport
-
-        capacities = np.ones(n_nodes) * 6 * 30 * params.cap_hub
-        # capacities[hub_ind] *= params.cap_hub
-        # capacities[vertiport_ind] *= params.cap_vertiport
-
-        service_model = ServiceNetworkModel(
-            n_nodes,
-            params.base_price,
-            params.price_per_km,
-            params.variable_cost_per_km,
-        )
-        service_model.solve(distances, demands, fixed_costs, capacities)
-        solution_flights, _solution_vertiports = service_model.get_solution()
-        if solution_flights is None:
-            return
-        # data.visualize_solution(demands)
-        data.visualize_solution(solution_flights)
-        # data.visualize_solution(solution_u)
+        self.data = ServiceNetworkDataset(download=kwargs.get("download_data", True))
 
     def run_hub_location(self) -> None:
         """Run an experiment to select the hub locations."""
-        data = ServiceNetworkDataset()
+        distances = self.data.get_distances()
+        demands = self.data.get_demands() / 180  # avg per day
 
-        distances = data.get_distances()
-        demands = data.get_demands() / 180  # avg per day
-
-        n_nodes = len(data.nyc_neighborhoods)
+        n_nodes = len(self.data.nyc_neighborhoods)
 
         model = HubLocationModel(n_nodes, self.n_hubs)
         model.solve(distances, demands)
@@ -96,11 +46,10 @@ class Experiment:
         hub_ind = solution_hubs.astype(bool)
         # vertiport_ind = np.invert(hub_ind)
 
-        hub_names = data.nyc_neighborhoods[hub_ind].tolist()
+        hub_names = self.data.nyc_neighborhoods[hub_ind].tolist()
 
         print(hub_names)
-        # data.visualize_hubs(hub_names)
-        data.visualize_solution(solution_arcs)
+        self.data.visualize_solution(solution_arcs)
 
     def run_wo_hubs(
         self, parameters: ModelParameters | None = None, plot_solution: bool = True
@@ -144,72 +93,6 @@ class Experiment:
     def get_solution_variables(self) -> tuple[np.ndarray | None, ...]:
         """Return optimal variables after the model run."""
         return self.flights, self.vertiports, self.service_levels
-
-    # def run_with_hubs(self) -> None:
-    #     """Run an experiment to select the hub locations and service frequencies."""
-    #     data = ServiceNetworkDataset()
-
-    #     distances = data.get_distances()
-    #     demands = data.get_demands() / 180  # avg per day
-
-    #     n_nodes = len(data.nyc_neighborhoods)
-
-    #     model = HubLocationModel(n_nodes, self.n_hubs)
-    #     model.solve(distances, demands)
-    #     solution_hubs, solution_arcs = model.get_solution()
-
-    #     if solution_arcs is None or solution_hubs is None:
-    #         return
-
-    #     hub_ind = solution_hubs.astype(bool)
-    #     vertiport_ind = np.invert(hub_ind)
-
-    #     hub_names = data.nyc_neighborhoods[hub_ind].tolist()
-
-    #     print(hub_names)
-    #     # data.visualize_hubs(hub_names)
-    #     data.visualize_solution(solution_arcs)
-
-    #     params = ModelParameters()
-
-    #     fixed_costs = np.ones(n_nodes)
-    #     fixed_costs[hub_ind] *= params.fixed_cost_hub
-    #     fixed_costs[vertiport_ind] *= params.fixed_cost_vertiport
-
-    #     capacities = np.ones(n_nodes)
-    #     capacities[hub_ind] *= params.cap_hub
-    #     capacities[vertiport_ind] *= params.cap_vertiport
-
-    #     # redirected_demands = ServiceNetworkModelWithHubs.redirect_flights(
-    #     #     demands, solution_hubs, solution_arcs
-    #     # )
-    #     # data.visualize_solution(redirected_demands)
-
-    #     service_model = ServiceNetworkModelWithHubs(
-    #         n_nodes,
-    #         params.base_price,
-    #         params.price_per_km,
-    #         params.variable_cost_per_km,
-    #         n_hubs=self.n_hubs,
-    #     )
-    #     service_model.solve(
-    #         distances, demands, solution_hubs, solution_arcs, fixed_costs, capacities
-    #     )
-    #     solution_flights, solution_vertiports, solution_u = service_model.get_solution()
-
-    #     if (
-    #         solution_flights is None
-    #         or solution_vertiports is None
-    #         or solution_u is None
-    #     ):
-    #         return
-
-    #     removed_port_names = data.nyc_neighborhoods[
-    #         ~solution_vertiports.astype(bool)
-    #     ].tolist()
-    #     print(removed_port_names)
-    #     # data.visualize_hubs(removed_port_names)
-    #     data.visualize_solution(solution_flights)
 
 
 class SensitivityAnalysis(Experiment):
@@ -306,5 +189,5 @@ class SensitivityAnalysis(Experiment):
 
 
 if __name__ == "__main__":
-    exp = SensitivityAnalysis()
+    exp = SensitivityAnalysis(download_data=True)
     exp.run_and_save()

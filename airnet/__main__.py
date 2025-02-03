@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from argparse import ArgumentParser, Namespace
 
-from modelname import __version__
-from modelname.experiments import Experiment
+from airnet import __version__
+from airnet.experiments import Experiment
 
 
 def parse_args() -> Namespace:
     """Parse command line arguments and return as dictionary."""
     parser = ArgumentParser(
-        prog="modelname",
+        prog="airnet",
         description="",
     )
     parser.add_argument(
