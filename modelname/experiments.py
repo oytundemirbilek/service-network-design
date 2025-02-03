@@ -144,6 +144,7 @@ class Experiment:
         service_level = solution_flights * 4 / demands
         service_level[np.where((solution_flights == 0) | (demands == 0))] = 0
         data.visualize_solution(filtered_flights, xlim=(-74.05, -73.9), ylim=(40.68, 40.83))
+        data.plot_service_level_hist(service_level)
 
     # def run_with_hubs(self) -> None:
     #     """Run an experiment to select the hub locations and service frequencies."""

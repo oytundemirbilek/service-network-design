@@ -389,6 +389,35 @@ class ServiceNetworkDataset:
         if show:
             plt.show()
 
+    def plot_service_level_hist(self, service_level):
+
+        # 1) Flatten the service_level matrix into 1D
+        values = service_level.flatten()
+
+        mask = (values != 0)
+        values = values[mask]
+
+        # 3) Compute mean and median
+        mean_val = values.mean()
+        median_val = np.median(values)
+
+        # 4) Plot histogram
+        plt.figure(figsize=(7, 5))
+        plt.hist(values, bins=20, edgecolor='black')
+
+        # 5) Add vertical lines for mean/median
+        plt.axvline(mean_val, color='red', linestyle='dashed', linewidth=2,
+                    label=f'Mean: {mean_val:.2f}')
+        plt.axvline(median_val, color='yellow', linestyle='solid', linewidth=2,
+                    label=f'Median: {median_val:.2f}')
+
+        # 6) Labeling
+        plt.xlabel("Service Level")
+        plt.ylabel("Frequency")
+        plt.title("Service Level of Optimal Solution")
+        plt.legend(loc='upper left')
+
+        plt.show()
 
 if __name__ == "__main__":
     data = ServiceNetworkDataset()
