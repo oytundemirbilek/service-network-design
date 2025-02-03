@@ -66,7 +66,7 @@ class Experiment:
         if solution_flights is None:
             return
         # data.visualize_solution(demands)
-        data.visualize_solution(solution_flights)
+        #data.visualize_solution(solution_flights)
         # data.visualize_solution(solution_u)
 
     def run_hub_location(self) -> None:
@@ -90,9 +90,9 @@ class Experiment:
 
         hub_names = data.nyc_neighborhoods[hub_ind].tolist()
 
-        print(hub_names)
+        #print(hub_names)
         # data.visualize_hubs(hub_names)
-        data.visualize_solution(solution_arcs)
+        #data.visualize_solution(solution_arcs)
 
     @staticmethod
     def run_wo_hubs() -> None:
@@ -124,6 +124,8 @@ class Experiment:
             ~solution_vertiports.astype(bool)
         ].tolist()
         print(removed_port_names)
+        print(solution_flights)
+        print(solution_vertiports)
         # data.visualize_hubs(removed_port_names)
         service_level = solution_flights * 4 / demands
         service_level[np.where((solution_flights == 0) | (demands == 0))] = 0
