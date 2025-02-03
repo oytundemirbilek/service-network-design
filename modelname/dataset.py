@@ -326,33 +326,48 @@ class ServiceNetworkDataset:
         solution: NDArray[np.floating],
         show_edges: bool = True,
         show: bool = True,
+        xlim=None,
+        ylim=None,
     ) -> None:
         """Plot the graph based on the given solution adjacency matrix."""
-        _fig, ax = plt.subplots(1, 1, figsize=(9, 9))
+        _fig, ax = plt.subplots(1, 1, figsize=(10, 13))
 
         graph = self.create_graph(solution)
 
         self.nyc_map.plot(ax=ax, color="white", edgecolor="grey")
         # # Draw and display plot
+        node_labels = {node: node[1] for node in graph.nodes()}
+
         nx.draw_networkx(
             graph,
             pos=self.nodes,
-            # node_color=nx.get_node_attributes(graph, "color").values(),
             ax=ax,
             hide_ticks=False,
-            node_size=50,
-            font_size=6,
+            node_size=10,
+            font_size=10,
+            width=0.5,
+            labels=node_labels,
         )
+
         if show_edges and self.nodes is not None:
             edge_labels = self.create_edge_labels(solution)
             nx.draw_networkx_edge_labels(
                 graph,
                 pos=self.nodes,
+                ax=ax,
                 edge_labels=edge_labels,
                 font_color="red",
-                font_size=6,
-                label_pos=0.9,
+                font_size=10,
+                label_pos=0.5,
+                hide_ticks=False,
             )
+
+        if xlim is not None:
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+
+        plt.title("Top 5 Vertiports and Frequencies")
 
         if show:
             plt.show()

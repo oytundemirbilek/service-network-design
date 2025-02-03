@@ -117,6 +117,7 @@ class Experiment:
         service_model.solve(distances, demands, fixed_costs, capacities)
         solution_flights, solution_vertiports = service_model.get_solution()
 
+
         if solution_flights is None or solution_vertiports is None:
             return
 
@@ -127,9 +128,22 @@ class Experiment:
         print(solution_flights)
         print(solution_vertiports)
         # data.visualize_hubs(removed_port_names)
+
+        flights_per_vertiport = solution_flights.sum(axis=1)
+        top_5_indices = np.argsort(flights_per_vertiport)[-5:]  # get highest 5
+
+        print("Top 5 vertiport indices:", top_5_indices)
+        print("Flights count for those top 5:", flights_per_vertiport[top_5_indices])
+
+        # (E) Create a filtered flights matrix with only the top 5 => zero out all others
+        filtered_flights = np.zeros_like(solution_flights)
+        for i in top_5_indices:
+            for j in top_5_indices:
+                filtered_flights[i, j] = solution_flights[i, j]
+
         service_level = solution_flights * 4 / demands
         service_level[np.where((solution_flights == 0) | (demands == 0))] = 0
-        data.visualize_solution(service_level)
+        data.visualize_solution(filtered_flights, xlim=(-74.05, -73.9), ylim=(40.68, 40.83))
 
     # def run_with_hubs(self) -> None:
     #     """Run an experiment to select the hub locations and service frequencies."""
