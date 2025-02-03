@@ -352,6 +352,8 @@ class ServiceNetworkDataset:
                 font_color="red",
                 font_size=6,
                 label_pos=0.9,
+                ax=ax,
+                hide_ticks=False,
             )
 
         if show:

@@ -131,7 +131,7 @@ class ServiceNetworkModel(OptimizationModel):
         self.budget = budget
         self.optimal_n_flights: np.ndarray | None = None  # f
         self.optimal_vertiports: np.ndarray | None = None  # y
-        self.optimal_unsatisfied_demand: np.ndarray | None = None  # u
+        self.optimal_profit: float | None = None
 
     def solve(
         self,
@@ -201,6 +201,8 @@ class ServiceNetworkModel(OptimizationModel):
 
         self.optimal_n_flights = self.build_solution_2d(f, self.n_nodes)
         self.optimal_vertiports = self.build_solution_1d(y, self.n_nodes)
+
+        self.optimal_profit = self.model.ObjVal
         return (self.optimal_n_flights, self.optimal_vertiports)
 
     def get_solution(
