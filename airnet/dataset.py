@@ -358,6 +358,8 @@ class ServiceNetworkDataset:
             hide_ticks=False,
             node_size=50,
             font_size=6,
+            with_labels=False,
+            arrows=True,
         )
         if show_edges and self.nodes is not None:
             edge_labels = self.create_edge_labels(solution)
@@ -374,32 +376,3 @@ class ServiceNetworkDataset:
 
         if show:
             plt.show()
-
-    def visualize_hubs(self, hubs: list[str] | None = None, show: bool = True) -> None:
-        """Plot all neighborhood centers and mark the ones as hubs given in the list."""
-        if hubs is None:
-            hubs = []
-        self.get_locations()
-        _fig, ax = plt.subplots(1, 1, figsize=(9, 9))
-
-        self.nyc_map.plot(ax=ax, color="white", edgecolor="grey")
-
-        for _, row in self.nyc_map.iterrows():
-            mark = "r*" if row["Name"] in hubs else "go"
-            ax.plot(row["center"].x, row["center"].y, mark)
-            ax.annotate(row["Name"], (row["center"].x, row["center"].y))
-
-        if show:
-            plt.show()
-
-
-if __name__ == "__main__":
-    data = ServiceNetworkDataset()
-    hubs = [
-        "Castleton Corners",
-        "New Brighton",
-        "Oakwood",
-        "Prospect Heights",
-        "Red Hook",
-    ]
-    data.visualize_hubs(hubs)

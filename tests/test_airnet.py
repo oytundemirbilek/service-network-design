@@ -65,5 +65,3 @@ def test_service_network_data() -> None:
 
     edges = dataset.get_edges(demands)
     assert len(edges) == n_edges, len(edges)
-
-    dataset.visualize_hubs(["Dyker Heights", "Kensington", "Harlem"], False)

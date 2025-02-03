@@ -82,11 +82,13 @@ class Experiment:
             ~solution_vertiports.astype(bool)
         ].tolist()
         print(removed_port_names)
-        # data.visualize_hubs(removed_port_names)
+
         self.service_levels = solution_flights * 4 / self.demands
         self.service_levels[np.where((solution_flights == 0) | (self.demands == 0))] = 0
+
         self.vertiports = solution_vertiports
         self.flights = solution_flights
+
         if plot_solution:
             self.data.visualize_solution(self.service_levels, show_edges=True)
 
@@ -130,7 +132,7 @@ class SensitivityAnalysis(Experiment):
             profit = self.service_model.optimal_profit
         return (service_level, profit)
 
-    def run_cost_sensitivity(self) -> tuple[np.ndarray, ...]:
+    def run_cost_sensitivity(self, save: bool = True) -> pd.DataFrame:
         """Run the model several times for different per-km-costs."""
         service_levels = []
         profits = []
@@ -140,9 +142,19 @@ class SensitivityAnalysis(Experiment):
             service_levels.append(service_level)
             profits.append(profit)
 
-        return np.array(service_levels), np.array(profits)
+        results_df = pd.DataFrame(
+            {
+                "Costs": self.costs,
+                "Cost-profit sensitivity": np.array(profits),
+                "Cost-service sensitivity": np.array(service_levels),
+            }
+        )
+        if save:
+            results_df.to_csv("cost_sensitivity.csv", index=False)
 
-    def run_price_sensitivity(self) -> tuple[np.ndarray, ...]:
+        return results_df
+
+    def run_price_sensitivity(self, save: bool = True) -> pd.DataFrame:
         """Run the model several times for different per-km-prices."""
         service_levels = []
         profits = []
@@ -152,9 +164,19 @@ class SensitivityAnalysis(Experiment):
             service_levels.append(service_level)
             profits.append(profit)
 
-        return np.array(service_levels), np.array(profits)
+        results_df = pd.DataFrame(
+            {
+                "Prices": self.prices,
+                "Price-profit sensitivity": np.array(profits),
+                "Price-service sensitivity": np.array(service_levels),
+            }
+        )
+        if save:
+            results_df.to_csv("price_sensitivity.csv", index=False)
 
-    def run_capacity_sensitivity(self) -> tuple[np.ndarray, ...]:
+        return results_df
+
+    def run_capacity_sensitivity(self, save: bool = True) -> pd.DataFrame:
         """Run the model several times for different vertiport capacities."""
         service_levels = []
         profits = []
@@ -164,27 +186,24 @@ class SensitivityAnalysis(Experiment):
             service_levels.append(service_level)
             profits.append(profit)
 
-        return np.array(service_levels), np.array(profits)
+        results_df = pd.DataFrame(
+            {
+                "Capacities": self.capacities,
+                "Capacity-profit sensitivity": np.array(profits),
+                "Capacity-service sensitivity": np.array(service_levels),
+            }
+        )
+        if save:
+            results_df.to_csv("capacity_sensitivity.csv", index=False)
+
+        return results_df
 
     def run_and_save(self) -> None:
         """Run all analysis and save results in a dataframe."""
-        price_vs_service, price_vs_profits = self.run_price_sensitivity()
-        cost_vs_service, cost_vs_profits = self.run_cost_sensitivity()
-        cap_vs_service, cap_vs_profits = self.run_capacity_sensitivity()
-
-        results_df = pd.DataFrame(
-            {
-                "Prices": self.prices,
-                "Price-profit sensitivity": price_vs_profits,
-                "Price-service sensitivity": price_vs_service,
-                "Costs": self.costs,
-                "Cost-profit sensitivity": cost_vs_profits,
-                "Cost-service sensitivity": cost_vs_service,
-                "Capacities": self.capacities,
-                "Capacity-profit sensitivity": cap_vs_profits,
-                "Capacity-service sensitivity": cap_vs_service,
-            }
-        )
+        price_sens_df = self.run_price_sensitivity(False)
+        cost_sens_df = self.run_cost_sensitivity(False)
+        cap_sens_df = self.run_capacity_sensitivity(False)
+        results_df = pd.concat([price_sens_df, cost_sens_df, cap_sens_df], axis=1)
         results_df.to_csv("sensitivity.csv", index=False)
 
 
