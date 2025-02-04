@@ -6,8 +6,8 @@ import os
 
 import numpy as np
 
-from modelname.dataset import ServiceNetworkDataset
-from modelname.model import HubLocationModel, ServiceNetworkModel
+from airnet.dataset import ServiceNetworkDataset
+from airnet.model import HubLocationModel, ServiceNetworkModel
 
 FILE_PATH = os.path.dirname(__file__)
 MAPDATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "neighborhoods-in-new-york")
@@ -65,5 +65,3 @@ def test_service_network_data() -> None:
 
     edges = dataset.get_edges(demands)
     assert len(edges) == n_edges, len(edges)
-
-    dataset.visualize_hubs(["Dyker Heights", "Kensington", "Harlem"], False)

@@ -1,19 +1,25 @@
 """Module to provide pre-defined parameters into the service network model."""
 
+from typing import Any
+
 import numpy as np
 
 
 class ModelParameters:
     """Class to derive various parameter calculations."""
 
-    def __init__(self) -> None:
-        self.base_price = 45.0  # dollar per seat
-        self.price_per_km = 3.0  # dollar per km per seat
-        self.fixed_cost_vertiport = 136.0  # dollar daily
-        self.fixed_cost_hub = 264.0  # dollar daily
-        self.variable_cost_per_km = 0.95  # dollar per km
-        self.cap_vertiport = 180
-        self.cap_hub = 900
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.base_price = kwargs.get("base_price", 45.0)  # dollar per seat
+        self.price_per_km = kwargs.get("price_per_km", 3.0)  # dollar per km per seat
+        self.fixed_cost_vertiport = kwargs.get(
+            "fixed_cost_vertiport", 136.0
+        )  # dollar daily
+        self.fixed_cost_hub = kwargs.get("fixed_cost_hub", 264.0)  # dollar daily
+        self.variable_cost_per_km = kwargs.get(
+            "variable_cost_per_km", 0.95
+        )  # dollar per km
+        self.cap_vertiport = kwargs.get("cap_vertiport", 180)
+        self.cap_hub = kwargs.get("cap_hub", 900)
 
     def get_total_price(self, distance: np.ndarray) -> np.ndarray:
         """Derive and return the price matrix from a given distance matrix."""

@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "setuptools_scm[tool]>=7"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "modelname"
+name = "airnet"
 version = "0.0.1"
 description = ""
 keywords = [""]
@@ -25,6 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "kagglehub",
     "pandas",
     "gurobipy",
     "numpy",
@@ -90,10 +91,10 @@ lint = [
 ]
 
 [project.scripts]
-modelname = "modelname.__main__:main"
+airnet = "airnet.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["modelname*", "datasets*"]
+include = ["airnet*", "datasets*"]
 namespaces = false
 
 [tool.isort]
@@ -209,7 +210,7 @@ addopts = [
     "--strict-markers",
     "--showlocals",
     "--junit-xml=./logs/pytest_junit.xml",
-    "--tb=line",
+    "--tb=short",
     "--cov-config=pyproject.toml",
     "--cov",
     "--cov-branch",

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import math
 import os
+import shutil
 from typing import Any
 
 import geopandas
+import kagglehub
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -22,11 +24,17 @@ class ServiceNetworkDataset:
     """An utility class that performs various data operations."""
 
     def __init__(
-        self, filename: str = "train_extended.csv", data_path: str | None = None
+        self,
+        filename: str = "train_extended.csv",
+        data_path: str | None = None,
+        download: bool = False,
     ) -> None:
         if data_path is None:
             data_path = DATA_PATH
         self.data_path = data_path
+        if not os.path.exists(self.data_path) and download:
+            self.download_data()
+
         self.nyc_map: pd.DataFrame = geopandas.read_file(
             os.path.join(MAPDATA_PATH, "ZillowNeighborhoods-NY.shp")
         )
@@ -59,6 +67,14 @@ class ServiceNetworkDataset:
         else:
             self.df = self.clean_data(self.df)
             self.df.to_csv(clean_data_path, index=False)
+
+    def download_data(self) -> None:
+        """Download kaggle dataset into the datapath folder."""
+        path = kagglehub.dataset_download(
+            "neomatrix369/nyc-taxi-trip-duration-extended"
+        )
+        shutil.move(path, self.data_path)
+        print("Dataset successfully downloaded in:", self.data_path)
 
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -326,8 +342,9 @@ class ServiceNetworkDataset:
         solution: NDArray[np.floating],
         show_edges: bool = True,
         show: bool = True,
-        xlim=None,
-        ylim=None,
+        xlim: tuple[float, float] | None = None,
+        ylim: tuple[float, float] | None = None,
+        show_topk_nodes: int | None = None,
     ) -> None:
         """Plot the graph based on the given solution adjacency matrix."""
         _fig, ax = plt.subplots(1, 1, figsize=(10, 13))
@@ -357,8 +374,8 @@ class ServiceNetworkDataset:
                 ax=ax,
                 edge_labels=edge_labels,
                 font_color="red",
-                font_size=10,
-                label_pos=0.5,
+                font_size=8,
+                label_pos=0.9,
                 hide_ticks=False,
             )
 
@@ -367,34 +384,18 @@ class ServiceNetworkDataset:
         if ylim is not None:
             ax.set_ylim(ylim)
 
-        plt.title("Top 5 Vertiports and Frequencies")
+        # plt.title("Top 5 Vertiports and Frequencies")
 
         if show:
             plt.show()
 
-    def visualize_hubs(self, hubs: list[str] | None = None, show: bool = True) -> None:
-        """Plot all neighborhood centers and mark the ones as hubs given in the list."""
-        if hubs is None:
-            hubs = []
-        self.get_locations()
-        _fig, ax = plt.subplots(1, 1, figsize=(9, 9))
-
-        self.nyc_map.plot(ax=ax, color="white", edgecolor="grey")
-
-        for _, row in self.nyc_map.iterrows():
-            mark = "r*" if row["Name"] in hubs else "go"
-            ax.plot(row["center"].x, row["center"].y, mark)
-            ax.annotate(row["Name"], (row["center"].x, row["center"].y))
-
-        if show:
-            plt.show()
-
-    def plot_service_level_hist(self, service_level):
-
+    @staticmethod
+    def plot_service_level_hist(service_levels: np.ndarray) -> None:
+        """Show statistical information about any service level."""
         # 1) Flatten the service_level matrix into 1D
-        values = service_level.flatten()
+        values = service_levels.flatten()
 
-        mask = (values != 0)
+        mask = values != 0
         values = values[mask]
 
         # 3) Compute mean and median
@@ -403,29 +404,28 @@ class ServiceNetworkDataset:
 
         # 4) Plot histogram
         plt.figure(figsize=(7, 5))
-        plt.hist(values, bins=20, edgecolor='black')
+        plt.hist(values, bins=20, edgecolor="black")
 
         # 5) Add vertical lines for mean/median
-        plt.axvline(mean_val, color='red', linestyle='dashed', linewidth=2,
-                    label=f'Mean: {mean_val:.2f}')
-        plt.axvline(median_val, color='yellow', linestyle='solid', linewidth=2,
-                    label=f'Median: {median_val:.2f}')
+        plt.axvline(
+            mean_val,
+            color="red",
+            linestyle="dashed",
+            linewidth=2,
+            label=f"Mean: {mean_val:.2f}",
+        )
+        plt.axvline(
+            median_val,
+            color="yellow",
+            linestyle="solid",
+            linewidth=2,
+            label=f"Median: {median_val:.2f}",
+        )
 
         # 6) Labeling
         plt.xlabel("Service Level")
         plt.ylabel("Frequency")
         plt.title("Service Level of Optimal Solution")
-        plt.legend(loc='upper left')
+        plt.legend(loc="upper left")
 
         plt.show()
-
-if __name__ == "__main__":
-    data = ServiceNetworkDataset()
-    hubs = [
-        "Castleton Corners",
-        "New Brighton",
-        "Oakwood",
-        "Prospect Heights",
-        "Red Hook",
-    ]
-    data.visualize_hubs(hubs)
