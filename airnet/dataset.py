@@ -340,14 +340,15 @@ class ServiceNetworkDataset:
     def visualize_solution(
         self,
         solution: NDArray[np.floating],
-        show_edges: bool = True,
+        show_edge_labels: bool = True,
+        show_node_labels: bool = True,
         show: bool = True,
         xlim: tuple[float, float] | None = None,
         ylim: tuple[float, float] | None = None,
-        show_topk_nodes: int | None = None,
+        title: str | None = None,
     ) -> None:
         """Plot the graph based on the given solution adjacency matrix."""
-        _fig, ax = plt.subplots(1, 1, figsize=(10, 13))
+        _fig, ax = plt.subplots(1, 1, figsize=(9, 9))
 
         graph = self.create_graph(solution)
 
@@ -364,9 +365,10 @@ class ServiceNetworkDataset:
             font_size=10,
             width=0.5,
             labels=node_labels,
+            with_labels=show_node_labels,
         )
 
-        if show_edges and self.nodes is not None:
+        if show_edge_labels and self.nodes is not None:
             edge_labels = self.create_edge_labels(solution)
             nx.draw_networkx_edge_labels(
                 graph,
@@ -384,16 +386,18 @@ class ServiceNetworkDataset:
         if ylim is not None:
             ax.set_ylim(ylim)
 
-        # plt.title("Top 5 Vertiports and Frequencies")
+        if title is not None:
+            plt.title(title)
 
         if show:
+            plt.tight_layout()
             plt.show()
 
     @staticmethod
-    def plot_service_level_hist(service_levels: np.ndarray) -> None:
+    def plot_hist(adj: np.ndarray, label: str) -> None:
         """Show statistical information about any service level."""
         # 1) Flatten the service_level matrix into 1D
-        values = service_levels.flatten()
+        values = adj.flatten()
 
         mask = values != 0
         values = values[mask]
@@ -423,9 +427,9 @@ class ServiceNetworkDataset:
         )
 
         # 6) Labeling
-        plt.xlabel("Service Level")
-        plt.ylabel("Frequency")
-        plt.title("Service Level of Optimal Solution")
+        plt.xlabel(label)
+        plt.ylabel("Count")
+        plt.title(f"{label} of Optimal Solution")
         plt.legend(loc="upper left")
 
         plt.show()

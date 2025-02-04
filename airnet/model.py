@@ -148,12 +148,6 @@ class ServiceNetworkModel(OptimizationModel):
         demands:
             an adjacency matrix of demands from each source and to each destination node,
             shape: (n_nodes, n_nodes).
-        hub_indices:
-            a binary array indicating which nodes are hubs or not (1 or 0),
-            selected hubs from hub selection problem. shape: (n_nodes)
-        hub_zones:
-            an adjacency matrix of arcs, indicates which nodes are connected,
-            selected arcs from hub selection problem. shape: (n_nodes, n_nodes).
         fixed_costs:
             a float array listing fixed cost for each vertiport. shape: (n_nodes)
         capacities:

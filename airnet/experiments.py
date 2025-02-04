@@ -51,6 +51,22 @@ class Experiment:
         print(hub_names)
         self.data.visualize_solution(solution_arcs)
 
+    @staticmethod
+    def select_topk(adj: np.ndarray, topk: int = 5) -> np.ndarray:
+        """Select the maximum topk nodes from the given adjacency matrix."""
+        value_per_node = adj.copy().sum(axis=1)
+        top_indices = np.argsort(value_per_node)[-topk:]  # get highest 5
+
+        print(f"Top {topk} vertiport indices:", top_indices)
+        print("Values for those top:", value_per_node[top_indices])
+
+        # (E) Create a filtered flights matrix with only the top 5 => zero out all others
+        topk_adj = np.zeros_like(adj)
+        for i in top_indices:
+            for j in top_indices:
+                topk_adj[i, j] = adj[i, j]
+        return topk_adj
+
     def run_wo_hubs(
         self, parameters: ModelParameters | None = None, plot_solution: bool = True
     ) -> None:
@@ -90,23 +106,30 @@ class Experiment:
         self.flights = solution_flights
 
         if plot_solution:
-            self.data.visualize_solution(self.service_levels, show_edges=True)
+            self.data.visualize_solution(
+                self.service_levels, show_edge_labels=False, show_node_labels=False
+            )
 
-        flights_per_vertiport = solution_flights.sum(axis=1)
-        top_5_indices = np.argsort(flights_per_vertiport)[-5:]  # get highest 5
+            filtered_flights = self.select_topk(solution_flights)
 
-        print("Top 5 vertiport indices:", top_5_indices)
-        print("Flights count for those top 5:", flights_per_vertiport[top_5_indices])
+            self.data.visualize_solution(
+                filtered_flights,
+                xlim=(-74.05, -73.9),
+                ylim=(40.68, 40.83),
+                title="Vertiports with Top 5 Flights",
+            )
 
-        # (E) Create a filtered flights matrix with only the top 5 => zero out all others
-        filtered_flights = np.zeros_like(solution_flights)
-        for i in top_5_indices:
-            for j in top_5_indices:
-                filtered_flights[i, j] = solution_flights[i, j]
+            filtered_service = self.select_topk(self.service_levels)
 
-        self.data.visualize_solution(
-            filtered_flights, xlim=(-74.05, -73.9), ylim=(40.68, 40.83)
-        )
+            self.data.visualize_solution(
+                filtered_service,
+                xlim=(-74.05, -73.7),
+                ylim=(40.72, 40.83),
+                title="Vertiports with Top 5 Service Levels",
+            )
+
+            self.data.plot_hist(self.service_levels, "Service Level")
+            self.data.plot_hist(solution_flights, "Number of Flights")
 
     def get_solution_variables(self) -> tuple[np.ndarray | None, ...]:
         """Return optimal variables after the model run."""
@@ -121,6 +144,7 @@ class SensitivityAnalysis(Experiment):
         self.costs = np.arange(1.0, 2.0, 0.1)  # price should be 3.0
         self.prices = np.arange(1.0, 3.0, 0.2)  # cost should be 0.95
         self.capacities = np.arange(100, 350, 25)
+        self.fixed_costs = np.arange(100, 350, 25)
 
     def run_sensitivity_experiment(self, params: ModelParameters) -> tuple[float, ...]:
         """Run a sensitivity experiment with given parameters and return service level and profit."""
@@ -214,15 +238,44 @@ class SensitivityAnalysis(Experiment):
 
         return results_df
 
+    def run_fixed_cost_sensitivity(self, save: bool = True) -> pd.DataFrame:
+        """Run the model several times for different vertiport fixed costs."""
+        service_levels = []
+        profits = []
+        n_vertiports = []
+        for fixed_cost in self.fixed_costs:
+            params = ModelParameters(fixed_cost_vertiport=fixed_cost)
+            service_level, profit = self.run_sensitivity_experiment(params)
+            service_levels.append(service_level)
+            profits.append(profit)
+            if self.vertiports is not None:
+                n_vertiports.append(self.vertiports.sum())
+
+        results_df = pd.DataFrame(
+            {
+                "Fixed costs": self.capacities,
+                "Fixed costs-profit sensitivity": np.array(profits),
+                "Fixed costs-service sensitivity": np.array(service_levels),
+                "Fixed costs-number of vertiports sensitivity": np.array(n_vertiports),
+            }
+        )
+        if save:
+            results_df.to_csv("fixedcost_sensitivity.csv", index=False)
+
+        return results_df
+
     def run_and_save(self) -> None:
         """Run all analysis and save results in a dataframe."""
         price_sens_df = self.run_price_sensitivity(False)
         cost_sens_df = self.run_cost_sensitivity(False)
         cap_sens_df = self.run_capacity_sensitivity(False)
-        results_df = pd.concat([price_sens_df, cost_sens_df, cap_sens_df], axis=1)
+        fixed_cost_sens_df = self.run_fixed_cost_sensitivity(False)
+        results_df = pd.concat(
+            [price_sens_df, cost_sens_df, cap_sens_df, fixed_cost_sens_df], axis=1
+        )
         results_df.to_csv("sensitivity.csv", index=False)
 
 
 if __name__ == "__main__":
     exp = SensitivityAnalysis(download_data=True)
-    exp.run_and_save()
+    exp.run_fixed_cost_sensitivity()

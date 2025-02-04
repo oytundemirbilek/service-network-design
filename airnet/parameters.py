@@ -14,12 +14,10 @@ class ModelParameters:
         self.fixed_cost_vertiport = kwargs.get(
             "fixed_cost_vertiport", 136.0
         )  # dollar daily
-        self.fixed_cost_hub = kwargs.get("fixed_cost_hub", 264.0)  # dollar daily
         self.variable_cost_per_km = kwargs.get(
             "variable_cost_per_km", 0.95
         )  # dollar per km
         self.cap_vertiport = kwargs.get("cap_vertiport", 180)
-        self.cap_hub = kwargs.get("cap_hub", 900)
 
     def get_total_price(self, distance: np.ndarray) -> np.ndarray:
         """Derive and return the price matrix from a given distance matrix."""
@@ -37,11 +35,6 @@ class ModelParameters:
     def get_fixed_cost_vertiport(self) -> float:
         """Return a pre-defined fixed cost for any vertiport."""
         return self.fixed_cost_vertiport
-
-    @property
-    def get_fixed_cost_hub(self) -> float:
-        """Return a pre-defined fixed cost for any hub."""
-        return self.fixed_cost_hub
 
     def get_variable_cost_per_km(self, distance: np.ndarray) -> np.ndarray:
         """Derive and return the variable cost matrix from a given distance matrix."""
