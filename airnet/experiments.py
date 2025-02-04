@@ -92,6 +92,22 @@ class Experiment:
         if plot_solution:
             self.data.visualize_solution(self.service_levels, show_edges=True)
 
+        flights_per_vertiport = solution_flights.sum(axis=1)
+        top_5_indices = np.argsort(flights_per_vertiport)[-5:]  # get highest 5
+
+        print("Top 5 vertiport indices:", top_5_indices)
+        print("Flights count for those top 5:", flights_per_vertiport[top_5_indices])
+
+        # (E) Create a filtered flights matrix with only the top 5 => zero out all others
+        filtered_flights = np.zeros_like(solution_flights)
+        for i in top_5_indices:
+            for j in top_5_indices:
+                filtered_flights[i, j] = solution_flights[i, j]
+
+        self.data.visualize_solution(
+            filtered_flights, xlim=(-74.05, -73.9), ylim=(40.68, 40.83)
+        )
+
     def get_solution_variables(self) -> tuple[np.ndarray | None, ...]:
         """Return optimal variables after the model run."""
         return self.flights, self.vertiports, self.service_levels
