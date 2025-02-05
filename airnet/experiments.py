@@ -26,8 +26,11 @@ class Experiment:
         self.flights: np.ndarray | None = None
         self.vertiports: np.ndarray | None = None
         self.service_model: ServiceNetworkModel | None = None
+        self.data_path = kwargs.get("data_path")
 
-        self.data = ServiceNetworkDataset(download=kwargs.get("download_data", True))
+        self.data = ServiceNetworkDataset(
+            data_path=self.data_path, download=kwargs.get("download_data", True)
+        )
 
     def run_hub_location(self) -> None:
         """Run an experiment to select the hub locations."""

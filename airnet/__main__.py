@@ -35,6 +35,13 @@ def parse_args() -> Namespace:
         help="The optimization model to run.",
         choices=["cost", "price", "capacity", "all"],
     )
+    main_args.add_argument(
+        "-d",
+        "--data-path",
+        type=str,
+        default=None,
+        help="Path to the dataset folder.",
+    )
 
     return parser.parse_args()
 
@@ -43,7 +50,7 @@ def main() -> None:
     """Run main function from CLI."""
     args = parse_args()
 
-    exp = Experiment()
+    exp = Experiment(data_path=args.data_path)
     if args.optimize == "service":
         exp.run_wo_hubs()
 
