@@ -7,7 +7,7 @@ Welcome to AirNet ! A service network optimization model for evTOL air taxis for
 You can install the module and its dependencies as a Python package simply via pip:
 
 ```sh
-pip install .
+pip install -e .
 ```
 
 The module is also designed to be OS-independent and supports python>=3.9. Note that you need to have a valid gurobi license to use to module.
