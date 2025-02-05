@@ -3,20 +3,18 @@ requires = ["setuptools>=64", "setuptools_scm[tool]>=7"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "modelname"
+name = "airnet"
 version = "0.0.1"
 description = ""
-keywords = [""]
-readme = "README.rst"
+keywords = ["Service network design", "Transportation analytics"]
+readme = "README.md"
 authors = [{ name="Oytun Demirbilek", email="oytun1996@gmail.com" }]
 license = { file = "LICENSE" }
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -27,6 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "kagglehub",
     "pandas",
     "gurobipy",
     "numpy",
@@ -92,10 +91,10 @@ lint = [
 ]
 
 [project.scripts]
-modelname = "modelname.__main__:main"
+airnet = "airnet.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["modelname*", "datasets*"]
+include = ["airnet*", "datasets*"]
 namespaces = false
 
 [tool.isort]
@@ -156,7 +155,7 @@ verbose = true
 [tool.ruff]
 target-version = "py310"
 extend-include = ["*.ipynb", ".*_version.py"]
-output-format = "grouped"
+output-format = "concise"
 line-length = 120
 
 [tool.ruff.lint]
@@ -182,7 +181,8 @@ select = [
 ]
 extend-ignore = [
     "E203",
-    "D107"
+    "D107",
+    "PT001",
 ]
 
 mccabe.max-complexity = 18
@@ -210,7 +210,7 @@ addopts = [
     "--strict-markers",
     "--showlocals",
     "--junit-xml=./logs/pytest_junit.xml",
-    "--tb=line",
+    "--tb=short",
     "--cov-config=pyproject.toml",
     "--cov",
     "--cov-branch",
