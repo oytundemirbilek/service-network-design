@@ -17,7 +17,7 @@ The module is also designed to be OS-independent and supports python>=3.9. Note 
 AirNet includes a command line interface (CLI) which provides parameterization of the main utilities. You can print the help message explaining all the parameters:
 
 ```sh
-airnet --optimize service
+airnet --optimize service --data-path ./datasets
 ```
 
 A sensitivity analysis will run the optimization model for multiple parameters and saves the results as a csv file:

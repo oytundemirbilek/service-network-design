@@ -16,8 +16,7 @@ import pandas as pd
 from numpy.typing import NDArray
 
 FILE_PATH = os.path.dirname(__file__)
-DATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "nyc-taxi-trip-duration-extended")
-MAPDATA_PATH = os.path.join(FILE_PATH, "..", "datasets", "neighborhoods-in-new-york")
+DATA_PATH = os.path.join(FILE_PATH, "..", "datasets")
 
 
 class ServiceNetworkDataset:
@@ -31,12 +30,16 @@ class ServiceNetworkDataset:
     ) -> None:
         if data_path is None:
             data_path = DATA_PATH
-        self.data_path = data_path
+        self.data_path = os.path.join(data_path, "nyc-taxi-trip-duration-extended")
         if not os.path.exists(self.data_path) and download:
             self.download_data()
 
         self.nyc_map: pd.DataFrame = geopandas.read_file(
-            os.path.join(MAPDATA_PATH, "ZillowNeighborhoods-NY.shp")
+            os.path.join(
+                data_path,
+                "neighborhoods-in-new-york",
+                "ZillowNeighborhoods-NY.shp",
+            )
         )
         self.nyc_map = self.nyc_map.drop_duplicates("Name", keep="first")
         self.select_counties = [
