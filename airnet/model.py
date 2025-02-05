@@ -115,7 +115,7 @@ class ServiceNetworkModel(OptimizationModel):
         base_price: float,
         price_per_km: float,
         cost_per_km: float,
-        max_seats: int = 4,
+        max_seats: int = 2,
         budget: float | None = None,
     ) -> None:
         super().__init__()

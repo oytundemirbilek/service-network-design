@@ -94,16 +94,16 @@ class Experiment:
         if solution_flights is None or solution_vertiports is None:
             return
 
-        removed_port_names = self.data.nyc_neighborhoods[
-            ~solution_vertiports.astype(bool)
-        ].tolist()
-        print(removed_port_names)
-
-        self.service_levels = solution_flights * 4 / self.demands
+        self.service_levels = (
+            solution_flights * self.service_model.max_seats / self.demands
+        )
         self.service_levels[np.where((solution_flights == 0) | (self.demands == 0))] = 0
 
         self.vertiports = solution_vertiports
         self.flights = solution_flights
+
+        print("Number of open vertiports:", self.vertiports.sum())
+        print("Total number of daily flights:", self.flights.sum())
 
         if plot_solution:
             self.data.visualize_solution(
@@ -119,12 +119,21 @@ class Experiment:
                 title="Vertiports with Top 5 Flights",
             )
 
+            filtered_flights = self.select_topk(solution_flights, 7)
+
+            self.data.visualize_solution(
+                filtered_flights,
+                # xlim=(-74.05, -73.9),
+                # ylim=(40.68, 40.83),
+                title="Vertiports with Top 7 Flights",
+            )
+
             filtered_service = self.select_topk(self.service_levels)
 
             self.data.visualize_solution(
                 filtered_service,
-                xlim=(-74.05, -73.7),
-                ylim=(40.72, 40.83),
+                # xlim=(-74.05, -73.7),
+                # ylim=(40.72, 40.83),
                 title="Vertiports with Top 5 Service Levels",
             )
 
@@ -161,9 +170,11 @@ class SensitivityAnalysis(Experiment):
         if (
             self.flights is not None
             and self.vertiports is not None
-            # and self.service_levels is not None
+            and self.service_model is not None
         ):
-            service_level = self.flights.sum() * 4.0 / self.demands.sum()
+            service_level = (
+                self.flights.sum() * self.service_model.max_seats / self.demands.sum()
+            )
 
         if (
             self.service_model is not None
