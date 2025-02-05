@@ -36,7 +36,7 @@ class ServiceNetworkDataset:
 
         self.nyc_map: pd.DataFrame = geopandas.read_file(
             os.path.join(
-                data_path,
+                FILE_PATH,
                 "neighborhoods-in-new-york",
                 "ZillowNeighborhoods-NY.shp",
             )
