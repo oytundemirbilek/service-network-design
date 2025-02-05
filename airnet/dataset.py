@@ -1,4 +1,4 @@
-"""Module for your custom dataset and how it should be treated."""
+"""Utility module for the customized dataset and how it should be treated."""
 
 from __future__ import annotations
 

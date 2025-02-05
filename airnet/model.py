@@ -1,4 +1,4 @@
-"""Module to define neural network, which is our solution."""
+"""Module to define the optimization model, which is our solution."""
 
 from __future__ import annotations
 

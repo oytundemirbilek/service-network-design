@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "airnet"
 version = "0.0.1"
 description = ""
-keywords = [""]
-readme = "README.rst"
+keywords = ["Service network design", "Transportation analytics"]
+readme = "README.md"
 authors = [{ name="Oytun Demirbilek", email="oytun1996@gmail.com" }]
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
