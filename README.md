@@ -35,7 +35,7 @@ airnet --optimize hubs
 
 ## File explanation
 
-1. project_overview.ipynb: Provides a overview of the **Advanced Air Mobility (AAM) Network Design** project. It outlines the core concept, objectives, and the mathematical model used to optimize vertiport connectivity and flight operations.
+1. data_analysis.ipynb: A notebook to provide analytical functions for the optimization results.
 
 2. service_network.ipynb: A notebook to provide a rather more interactive interface for running the model.
 
